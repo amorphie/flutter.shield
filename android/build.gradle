@@ -1,0 +1,64 @@
+group = "id.my.burganbank.flutter_shield"
+version = "1.0-SNAPSHOT"
+
+buildscript {
+    ext.kotlin_version = "1.9.0"
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath("com.android.tools.build:gradle:7.3.0")
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-parcelize'
+
+android {
+    namespace = "id.my.burganbank.flutter_shield"
+    compileSdk = 34
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        minSdkVersion 21
+    }
+}
+
+dependencies {
+    
+    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testImplementation("org.mockito:mockito-core:5.0.0")
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version" // Kotlin standard library
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation 'androidx.core:core-ktx:1.7.0' // Android KTX core library
+    implementation 'androidx.appcompat:appcompat:1.4.0' // AndroidX AppCompat library
+    implementation 'com.google.android.material:material:1.4.0' // Material Design library
+
+    // Add the necessary AndroidX and security dependencies
+    implementation 'androidx.annotation:annotation:1.2.0'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha03'
+}
