@@ -4,6 +4,12 @@ import 'src/models/access_control_model.dart';
 import 'src/models/result_model.dart';
 
 abstract class SecureEnclaveBase {
+
+  Future<ResultModel<bool>> storeServerPrivateKey({
+    required String tag,
+    required Uint8List privateKeyData
+  });
+
   Future<ResultModel<bool>> generateKeyPair({
     required AccessControlModel accessControl,
   });

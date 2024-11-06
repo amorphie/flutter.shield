@@ -15,7 +15,40 @@ import android.util.Base64
 import javax.crypto.Cipher
 
 class ModernEncryptionStrategy : EncryptionStrategy {
-    private val KEYSTORE_PROVIDER = "AndroidKeyStore"
+    private val KEYSTORE_PROVIDER = "AndroidKeyStore" //Secure Enclave
+
+    override fun storeServerPrivateKey(tag: String, privateKeyData: ByteArray): Boolean {
+       try {
+            // Get the KeyStore instance
+            val keyStore = KeyStore.getInstance(KEYSTORE_PROVIDER).apply { load(null) }
+
+            // Convert the byte array to a PrivateKey object
+            val keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
+            val privateKeySpec = PKCS8EncodedKeySpec(privateKeyData)
+            val privateKey = keyFactory.generatePrivate(privateKeySpec) as PrivateKey
+
+            // Store the private key in the Android KeyStore with appropriate protection parameters
+            val keyProtection = KeyProtection.Builder(
+                KeyProperties.PURPOSE_DECRYPT or KeyProperties.PURPOSE_SIGN
+            )
+                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
+                .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
+                .setUserAuthenticationRequired(false) // Optional: Adjust as needed
+                .build()
+
+            keyStore.setEntry(
+                tag + "_ss",
+                KeyStore.PrivateKeyEntry(privateKey, null),
+                keyProtection
+            )
+
+            return true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return false
+        }
+    }
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun generateKeyPair(accessControlParam: AccessControlParam): KeyPair {
@@ -27,6 +60,7 @@ class ModernEncryptionStrategy : EncryptionStrategy {
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT or KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
         )
             .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+            .setIsStrongBoxBacked(true) //StrongBox
             .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
             .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
             .setKeySize(2048)

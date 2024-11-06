@@ -19,6 +19,26 @@ class LegacyEncryptionStrategy(private val context: Context) : EncryptionStrateg
     private val publicKeyStorageKey = "brgnPubKey_";
     private val privateKeyStorageKey = "brgnPvtKey_";
 
+    override fun storeServerPrivateKey(tag: String, privateKeyData: ByteArray): Boolean {
+       return try {
+            // Convert the byte array to a PrivateKey object
+            val keyFactory = KeyFactory.getInstance("RSA")
+            val privateKeySpec = PKCS8EncodedKeySpec(privateKeyData)
+            val privateKey = keyFactory.generatePrivate(privateKeySpec)
+
+            // Store the private key in shared preferences
+            val sharedPreferences = context.getSharedPreferences(KEYSTORE_PROVIDER, Context.MODE_PRIVATE)
+            val editor = sharedPreferences.edit()
+            editor.putString(privateKeyStorageKey + tag + "_ss", Base64.encodeToString(privateKey.encoded, Base64.DEFAULT))
+            editor.apply()
+
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
     override fun generateKeyPair(accessControlParam: AccessControlParam): KeyPair {
          val keyGen = KeyPairGenerator.getInstance("RSA")
         keyGen.initialize(2048)

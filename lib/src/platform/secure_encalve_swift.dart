@@ -36,6 +36,26 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('flutter_shield');
 
+   /// Store sever private key
+  @override
+  Future<ResultModel<bool>> storeServerPrivateKey(
+      { required String tag, required Uint8List privateKeyData}) async {
+    final result = await methodChannel.invokeMethod<dynamic>(
+      'storeServerPrivateKey',
+      {
+        "tag": tag,
+        "privateKeyData": privateKeyData
+      },
+    );
+
+    return ResultModel.fromMap(
+      map: Map<String, dynamic>.from(result),
+      decoder: (rawData) {
+        return rawData as bool? ?? false;
+      },
+    );
+  }
+
   /// Generetes a new private/public key pair
   @override
   Future<ResultModel<bool>> generateKeyPair(

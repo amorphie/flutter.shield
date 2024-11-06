@@ -3,6 +3,9 @@ import LocalAuthentication
 
 // Abstraction/Protocol class of EncryptionStrategy
 protocol EncryptionStrategy {
+    
+    func storeServerPrivateKey(privateKeyData: Data, tag: String) throws -> Bool
+    
     // create and store private key to secure enclave
     func generateKeyPair(accessControlParam: AccessControlParam) throws -> SecKey
     

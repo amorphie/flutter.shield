@@ -35,6 +35,14 @@ class SecureEnclave implements SecureEnclaveBase {
     );
   }
 
+  /// Store Server Private Key
+  @override
+  Future<ResultModel<bool>> storeServerPrivateKey(
+    { required String tag, required Uint8List privateKeyData }) {
+    return SecureEnclavePlatform.instance
+    .storeServerPrivateKey(tag: tag, privateKeyData: privateKeyData);
+  }
+
   /// Generetes a new private/public key pair
   @override
   Future<ResultModel<bool>> generateKeyPair(

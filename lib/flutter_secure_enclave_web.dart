@@ -30,6 +30,23 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
   }
 
   @override
+  Future<ResultModel<bool>> storeServerPrivateKey({required String tag, required Uint8List privateKeyData}) async {
+    var privateKey = await _storage.containsKey(key: "${privateKeyStorageKey}_${tag}_ss");
+    if(privateKey){
+      await removeKey("${privateKeyStorageKey}_${tag}_ss");
+    }
+
+    await _storage.write(key: "${privateKeyStorageKey}_${tag}_ss", value: utf8.decode(privateKeyData));
+
+    return ResultModel.fromMap(
+      map: Map<String, dynamic>.from({"data": true}),
+      decoder: (rawData) {
+        return rawData as bool;
+      },
+    );
+  }
+
+  @override
   Future<ResultModel<String?>> decrypt({required String tag, required Uint8List message}) async {
     final privateKey = await getPrivateKey(tag);
     final decryptor = OAEPEncoding(RSAEngine())..init(false, PrivateKeyParameter<RSAPrivateKey>(privateKey));
@@ -93,7 +110,7 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
   Future<ResultModel<String?>> getPublicKey(String tag) async {
      var publicKey = await getPublicKeyInernal(tag);
      return ResultModel.fromMap(
-      map: Map<String, dynamic>.from({"data": publicKey}),
+      map: Map<String, dynamic>.from({"data": encodePublicKeyToPem(publicKey)}),
       decoder: (rawData) {
         return rawData as String?;
       },
@@ -289,5 +306,4 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
 
     return output;
   }
-
 }

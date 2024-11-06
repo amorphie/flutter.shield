@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_shield_example/app_password.dart';
+import 'package:flutter_shield_example/generate_cert.dart';
 import 'package:flutter_shield_example/signature_verify.dart';
 
 class Dashboard extends StatefulWidget {
@@ -24,6 +25,28 @@ class _DashboardState extends State<Dashboard> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
+                      builder: (context) => const AppGenerateCert(),
+                    ),
+                  );
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: SizedBox(
+                    height: 100,
+                    child: Center(
+                      child: Text('Generate Cert'),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(5),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
                       builder: (context) => const AppPassword(),
                     ),
                   );
@@ -33,7 +56,7 @@ class _DashboardState extends State<Dashboard> {
                   child: SizedBox(
                     height: 100,
                     child: Center(
-                      child: Text('App password'),
+                      child: Text('Encrypt & Decrypt'),
                     ),
                   ),
                 ),

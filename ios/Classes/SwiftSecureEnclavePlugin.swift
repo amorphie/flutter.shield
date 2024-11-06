@@ -14,6 +14,17 @@ public class SwiftSecureEnclavePlugin: NSObject, FlutterPlugin {
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method{
+        case "storeServerPrivateKey":
+            do{
+                let param = call.arguments as? Dictionary<String, Any>
+                let tag = param!["tag"] as! String
+                let privateKeyData = param!["privateKeyData"] as! FlutterStandardTypedData
+                let isSuccess = try encryptionStrategy.storeServerPrivateKey(privateKeyData: privateKeyData.data, tag: tag)
+                result(resultSuccess(data:isSuccess))
+            } catch {
+                result(resultError(error:error))
+            }
+            
         case "generateKeyPair":
             do{
                 let param = call.arguments as? Dictionary<String, Any>

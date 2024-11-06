@@ -4,6 +4,10 @@ import java.security.KeyPair
 import id.my.burganbank.flutter_shield.model.*
 
 interface EncryptionStrategy {
+
+    @Throws(Exception::class)
+    fun storeServerPrivateKey(tag: String, privateKeyData: ByteArray): Boolean
+
     @Throws(Exception::class)
     fun generateKeyPair(accessControlParam: AccessControlParam): KeyPair
 

@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_shield_example/DeviceInfoProvider.dart';
 import 'package:flutter_shield_example/dashboard.dart';
+import 'package:provider/provider.dart';
 
 final _messangerKey = GlobalKey<ScaffoldMessengerState>();
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DeviceInfoProvider()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {

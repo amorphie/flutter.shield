@@ -42,6 +42,17 @@ class SecureEnclavePlugin: FlutterPlugin, MethodCallHandler {
 
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
         when (call.method) {
+            "storeServerPrivateKey" -> {
+                try {
+                    val param = call.arguments as? Map<String, Any>
+                    val tag = param?.get("tag") as? String ?: ""
+                    val privateKeyDataBytes = (param?.get("privateKeyData") as? ByteArray) ?: byteArrayOf()
+                    val isSuccess = encryptionStrategy.storeServerPrivateKey(tag, privateKeyDataBytes)
+                    result.success(mapOf("status" to "success", "data" to isSuccess))
+                } catch (e: Exception) {
+                    result.error("ERROR", e.localizedMessage, null)
+                }
+            },
             "generateKeyPair" -> {
                 try {
                     val param = call.arguments as? Map<String, Any?>
