@@ -1,140 +1,245 @@
 package id.my.burganbank.flutter_shield
 
-import id.my.burganbank.flutter_shield.model.AccessControlParam
+import android.content.Context
+import android.content.SharedPreferences
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import androidx.annotation.RequiresApi
-import java.security.KeyPair
-import java.security.KeyPairGenerator
-import java.security.KeyStore
-import java.security.PrivateKey
-import java.security.PublicKey
-import java.security.Signature
 import android.util.Base64
+import androidx.annotation.RequiresApi
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import id.my.burganbank.flutter_shield.model.AccessControlParam
+import java.security.*
+import java.security.spec.ECGenParameterSpec
+import java.security.spec.PKCS8EncodedKeySpec
 import javax.crypto.Cipher
 
-class ModernEncryptionStrategy : EncryptionStrategy {
-    private val KEYSTORE_PROVIDER = "AndroidKeyStore" //Secure Enclave
+class ModernEncryptionStrategy(private val context: Context) : EncryptionStrategy {
 
-    override fun storeServerPrivateKey(tag: String, privateKeyData: ByteArray): Boolean {
-       try {
-            // Get the KeyStore instance
-            val keyStore = KeyStore.getInstance(KEYSTORE_PROVIDER).apply { load(null) }
+    private val sharedPreferences: SharedPreferences
+    private val editor: SharedPreferences.Editor
 
-            // Convert the byte array to a PrivateKey object
-            val keyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
-            val privateKeySpec = PKCS8EncodedKeySpec(privateKeyData)
-            val privateKey = keyFactory.generatePrivate(privateKeySpec) as PrivateKey
+    init {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
 
-            // Store the private key in the Android KeyStore with appropriate protection parameters
-            val keyProtection = KeyProtection.Builder(
-                KeyProperties.PURPOSE_DECRYPT or KeyProperties.PURPOSE_SIGN
-            )
-                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
-                .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-                .setUserAuthenticationRequired(false) // Optional: Adjust as needed
-                .build()
+        sharedPreferences = EncryptedSharedPreferences.create(
+            context,
+            "shield_secret_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
 
-            keyStore.setEntry(
-                tag + "_ss",
-                KeyStore.PrivateKeyEntry(privateKey, null),
-                keyProtection
-            )
+        editor = sharedPreferences.edit();
+    }
 
-            return true
+    private fun getServerPrivateKey(tag: String): PrivateKey? {
+        return try {
+            val privateKeyString = sharedPreferences.getString(tag + "_ss", "") ?: return null
+            val privateKeyData = Base64.decode(privateKeyString, Base64.DEFAULT)
+
+            val keyFactory = KeyFactory.getInstance("RSA")
+            val pkcs8KeySpec = PKCS8EncodedKeySpec(privateKeyData)
+            val privateKey = keyFactory.generatePrivate(pkcs8KeySpec)
+            privateKey
         } catch (e: Exception) {
             e.printStackTrace()
-            return false
+            null
+        }
+    }
+
+    private fun String.chunked(size: Int): List<String> {
+        val chunks = mutableListOf<String>()
+        var i = 0
+        while (i < this.length) {
+            chunks.add(this.substring(i, Math.min(i + size, this.length)))
+            i += size
+        }
+        return chunks
+    }
+
+    override fun storeCertificate(
+        tag: String,
+        certificateData: ByteArray
+    ): Boolean {
+        return try {
+            val pemString = String(certificateData)
+            editor.putString(tag + "_cert", pemString).apply()
+
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    override fun getCertificate(tag: String): String? {
+        return try {
+            val pemString = sharedPreferences.getString("${tag}_cert", null) ?: return null
+            pemString
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    override fun removeCertificate(tag: String): Boolean {
+        if (sharedPreferences.contains(tag + "_cert")) {
+            editor.remove(tag + "_cert").apply()
+        }
+        return true
+    }
+
+    override fun storeServerPrivateKey(tag: String, privateKeyData: ByteArray): Boolean {
+        return try {
+            val pemString = String(privateKeyData)
+
+            val base64Encoded = pemString
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replace("-----BEGIN RSA PRIVATE KEY-----", "")
+                .replace("-----END RSA PRIVATE KEY-----", "")
+                .replace("\n", "")
+
+            val derData = Base64.decode(base64Encoded, Base64.DEFAULT)
+
+            val privateKeyString = Base64.encodeToString(derData, Base64.DEFAULT)
+            editor.putString(tag + "_ss", privateKeyString).apply()
+
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    override fun getServerKey(tag: String): String? {
+        return try {
+            val privateKeyString = sharedPreferences.getString("${tag}_ss", null) ?: return null
+            val privateKeyData = Base64.decode(privateKeyString, Base64.DEFAULT)
+
+            val keyFactory = KeyFactory.getInstance("RSA")
+            val pkcs8KeySpec = PKCS8EncodedKeySpec(privateKeyData)
+            val privateKey = keyFactory.generatePrivate(pkcs8KeySpec)
+
+            val base64EncodedKey = Base64.encodeToString(privateKeyData, Base64.NO_WRAP)
+
+            val pemKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
+                    base64EncodedKey.chunked(64).joinToString("\n") +
+                    "\n-----END RSA PRIVATE KEY-----"
+
+            pemKey
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun generateKeyPair(accessControlParam: AccessControlParam): KeyPair {
-        val keyPairGenerator = KeyPairGenerator.getInstance("RSA", KEYSTORE_PROVIDER)
+        val keyPairGenerator = KeyPairGenerator.getInstance("EC", "AndroidKeyStore")
+        val parameterSpec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            KeyGenParameterSpec.Builder(
+                accessControlParam.tag,
+                KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
+            )
+                .setDigests(KeyProperties.DIGEST_SHA256)
+                .setIsStrongBoxBacked(true)
+                .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+                .build()
+        } else {
+            KeyGenParameterSpec.Builder(
+                accessControlParam.tag,
+                KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
+            )
+                .setDigests(KeyProperties.DIGEST_SHA256)
+                .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+                .build()
+        }
 
-        val alias = accessControlParam.tag
-        val parameterSpecBuilder = KeyGenParameterSpec.Builder(
-            alias,
-            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT or KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
-        )
-            .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-            .setIsStrongBoxBacked(true) //StrongBox
-            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
-            .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-            .setKeySize(2048)
-
-        val parameterSpec = parameterSpecBuilder.build()
         keyPairGenerator.initialize(parameterSpec)
-        val keyPair = keyPairGenerator.generateKeyPair()
-
-        return keyPair
+        return keyPairGenerator.generateKeyPair()
     }
 
-    override fun removeKey(tag: String): Boolean {
-        val keyStore = KeyStore.getInstance(KEYSTORE_PROVIDER).apply { load(null) }
-        keyStore.deleteEntry(tag)
-        return true
+    override fun removeKey(tag: String, flag: String): Boolean {
+        if(flag == "C"){
+            val keyStore = KeyStore.getInstance("AndroidKeyStore")
+            keyStore.load(null)
+            keyStore.deleteEntry(tag)
+            return true
+        }else{
+            var tagValue = tag
+            if (flag == "S") {
+                tagValue += "_ss"
+            }
+            if (sharedPreferences.contains(tagValue)) {
+                editor.remove(tagValue).apply()
+            }
+            return true
+        }
     }
 
-    internal fun getSecKey(tag: String): KeyPair? {
-        val keyStore = KeyStore.getInstance(KEYSTORE_PROVIDER).apply { load(null) }
-        val privateKey = keyStore.getKey(tag, null) as PrivateKey
-        val publicKey = keyStore.getCertificate(tag)?.publicKey
-        return if (publicKey != null) KeyPair(publicKey, privateKey) else null
-    }
-
-    override fun isKeyCreated(tag: String): Boolean? {
-        val secKey = getSecKey(tag)
-        return secKey != null
+    override fun isKeyCreated(tag: String, flag: String): Boolean? {
+        if(flag == "C"){
+            val keyStore = KeyStore.getInstance("AndroidKeyStore")
+            keyStore.load(null)
+            return keyStore.containsAlias(tag)
+        } else {
+            var tagValue = tag
+            if (flag == "S") {
+                tagValue += "_ss"
+            }
+            return  sharedPreferences.contains(tagValue)
+        }
     }
 
     override fun getPublicKey(tag: String): String? {
-        val publicKey = getPublicKeyFromKeyStore(tag)
-        return Base64.encodeToString(publicKey.encoded, Base64.DEFAULT)
+        val keyStore = KeyStore.getInstance("AndroidKeyStore")
+        keyStore.load(null)
+        val publicKey = keyStore.getCertificate(tag)?.publicKey
+        return publicKey?.let { Base64.encodeToString(it.encoded, Base64.DEFAULT) }
     }
 
     override fun encrypt(message: String, tag: String): ByteArray? {
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-        cipher.init(Cipher.ENCRYPT_MODE, getPublicKeyFromKeyStore(tag))
-        val encryptedBytes = cipher.doFinal(message.toByteArray())
-        return encryptedBytes;
+        val keyStore = KeyStore.getInstance("AndroidKeyStore")
+        keyStore.load(null)
+        val publicKey = keyStore.getCertificate(tag)?.publicKey ?: return null
+
+        val cipher = Cipher.getInstance("ECIES")
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
+        return cipher.doFinal(message.toByteArray())
     }
 
     override fun decrypt(message: ByteArray, tag: String): String? {
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-        cipher.init(Cipher.DECRYPT_MODE, getPrivateKeyFromKeyStore(tag))
-        val decryptedBytes = cipher.doFinal(message)
-        return String(decryptedBytes)
+        val privateKey = getServerPrivateKey(tag) ?: return null
+        val cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding") //RSA/ECB/PKCS1Padding
+        cipher.init(Cipher.DECRYPT_MODE, privateKey)
+        return String(cipher.doFinal(message))
     }
 
     override fun sign(tag: String, message: ByteArray): String? {
-        val privateKey = getPrivateKeyFromKeyStore(tag)
-        val signatureInstance = Signature.getInstance("SHA256withRSA")
-        signatureInstance.initSign(privateKey)
-        signatureInstance.update(message)
-        val signatureBytes = signatureInstance.sign()
-        return Base64.encodeToString(signatureBytes, Base64.DEFAULT)
+        val keyStore = KeyStore.getInstance("AndroidKeyStore")
+        keyStore.load(null)
+        val privateKey = keyStore.getKey(tag, null) as? PrivateKey ?: return null
+
+        val signature = Signature.getInstance("SHA256withECDSA")
+        signature.initSign(privateKey)
+        signature.update(message)
+        return Base64.encodeToString(signature.sign(), Base64.DEFAULT)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    override fun verify(tag: String, plainText: String, signatureText: String): Boolean {
-        val publicKey = getPublicKeyFromKeyStore(tag)
-        val signature = Signature.getInstance("SHA256withRSA")
-        signature.initVerify(publicKey)
-        signature.update(plainText.toByteArray())
-        val signatureBytes = Base64.decode(signatureText, Base64.DEFAULT)
-        return signature.verify(signatureBytes)
-    }
+    override fun verify(tag: String, plainText: String, signature: String): Boolean {
+        val keyStore = KeyStore.getInstance("AndroidKeyStore")
+        keyStore.load(null)
+        val publicKey = keyStore.getCertificate(tag)?.publicKey ?: return false
 
-    private fun getPublicKeyFromKeyStore(tag: String): PublicKey {
-        val keyStore = KeyStore.getInstance(KEYSTORE_PROVIDER).apply { load(null) }
-        return keyStore.getCertificate(tag).publicKey
-    }
-
-    private fun getPrivateKeyFromKeyStore(tag: String): PrivateKey {
-        val keyStore = KeyStore.getInstance(KEYSTORE_PROVIDER).apply { load(null) }
-        return keyStore.getKey(tag, null) as PrivateKey
+        val signatureInstance = Signature.getInstance("SHA256withECDSA")
+        signatureInstance.initVerify(publicKey)
+        signatureInstance.update(plainText.toByteArray())
+        return signatureInstance.verify(Base64.decode(signature, Base64.DEFAULT))
     }
 }

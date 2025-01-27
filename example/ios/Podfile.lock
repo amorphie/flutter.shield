@@ -11,6 +11,8 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
+  - system_proxy (0.0.1):
+    - Flutter
 
 DEPENDENCIES:
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
@@ -19,6 +21,7 @@ DEPENDENCIES:
   - flutter_shield (from `.symlinks/plugins/flutter_shield/ios`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - system_proxy (from `.symlinks/plugins/system_proxy/ios`)
 
 EXTERNAL SOURCES:
   device_info_plus:
@@ -33,14 +36,17 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/integration_test/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  system_proxy:
+    :path: ".symlinks/plugins/system_proxy/ios"
 
 SPEC CHECKSUMS:
   device_info_plus: 97af1d7e84681a90d0693e63169a5d50e0839a0d
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
   flutter_shield: 7a6dda8cac47ab925f4d39c6f4461d0650bb63ce
-  integration_test: ce0a3ffa1de96d1a89ca0ac26fca7ea18a749ef4
+  integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  system_proxy: bec1a5c5af67dd3e3ebf43979400a8756c04cc44
 
 PODFILE CHECKSUM: 59f8de8f40bb382091a43991ef43c063d955e661
 

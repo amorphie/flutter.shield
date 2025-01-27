@@ -3,7 +3,78 @@ import LocalAuthentication
 
 @available(iOS 11.3, *)
 class ModernEncryptionStrategy : EncryptionStrategy {
+    
+    func getServerKey(tag: String) throws -> String? {
+        guard let secKey = try? getSecKey(tag: tag, flag: "S") else {
+            throw CustomError.runtimeError("Failed to retrieve the private key")
+        }
 
+        var error: Unmanaged<CFError>?
+        guard let keyData = SecKeyCopyExternalRepresentation(secKey, &error) as Data? else {
+            if let error = error {
+                throw error.takeRetainedValue() as Error
+            }
+            throw CustomError.runtimeError("Failed to extract key data from SecKey")
+        }
+        
+        let base64EncodedKey = keyData.base64EncodedString()
+
+        var pemKey = "-----BEGIN RSA PRIVATE KEY-----\n"
+        var index = base64EncodedKey.startIndex
+
+        while index < base64EncodedKey.endIndex {
+            let endIndex = base64EncodedKey.index(index, offsetBy: 64, limitedBy: base64EncodedKey.endIndex) ?? base64EncodedKey.endIndex
+            pemKey += base64EncodedKey[index..<endIndex] + "\n"
+            index = endIndex
+        }
+
+        pemKey += "-----END RSA PRIVATE KEY-----\n"
+        return pemKey
+    }
+
+    func storeCertificate(certificateData: Data, tag: String) throws -> Bool {
+        let certData = String(data: certificateData, encoding: .utf8)!
+        let secAttrApplicationTag = (tag + "_cert").data(using: .utf8)!
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: secAttrApplicationTag,
+            kSecValueData as String: certData
+        ]
+        let status = SecItemAdd(query as CFDictionary, nil)
+        return status == errSecSuccess
+    }
+    
+    func getCertificate(tag: String) throws -> String? {
+        let secAttrApplicationTag = (tag + "_cert").data(using: .utf8)!
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: secAttrApplicationTag,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var dataTypeRef: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
+        
+        guard status == errSecSuccess, let certData = dataTypeRef as? Data else {
+            return nil
+        }
+
+        return String(data: certData, encoding: .utf8)
+    }
+    
+    func removeCertificate(tag: String) throws -> Bool {
+        let secAttrApplicationTag = (tag + "_cert").data(using: .utf8)!
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: secAttrApplicationTag
+        ]
+        
+        let status = SecItemDelete(query as CFDictionary)
+        return status == errSecSuccess
+    }
+    
     func storeServerPrivateKey(privateKeyData: Data, tag: String) throws -> Bool {
         let secAttrApplicationTag = (tag + "_ss").data(using: .utf8)!
         
@@ -45,7 +116,7 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         }
         
         // Verify if the key was successfully stored
-        return try isKeyCreated(tag: tag) ?? false
+        return try isKeyCreated(tag: tag, flag: "S") ?? false
     }
 
     func generateKeyPair(accessControlParam: AccessControlParam) throws -> SecKey  {
@@ -112,8 +183,12 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         }
     }
     
-    func removeKey(tag: String) throws -> Bool {
-        let secAttrApplicationTag : Data = tag.data(using: .utf8)!
+    func removeKey(tag: String, flag: String) throws -> Bool {
+        var tagValue = tag
+        if flag == "S" {
+            tagValue += "_ss"
+        }
+        let secAttrApplicationTag : Data = tagValue.data(using: .utf8)!
         let query: [String: Any] = [
             kSecClass as String                 : kSecClassKey,
             kSecAttrApplicationTag as String    : secAttrApplicationTag
@@ -132,13 +207,18 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         return true
     }
     
-    internal func getSecKey(tag: String) throws -> SecKey?  {
-        let secAttrApplicationTag = tag.data(using: .utf8)!
-        
+    internal func getSecKey(tag: String, flag: String = "C") throws -> SecKey?  {
+        var tagValue = tag
+        if flag == "S" {
+            tagValue += "_ss"
+        }
+        let secAttrApplicationTag = tagValue.data(using: .utf8)!
+        // Determine key type based on flag
+        let keyType: CFString = (flag == "S") ? kSecAttrKeyTypeRSA : kSecAttrKeyTypeEC
         let query: [String: Any] = [
             kSecClass as String                 : kSecClassKey,
             kSecAttrApplicationTag as String    : secAttrApplicationTag,
-            //kSecAttrKeyType as String           : kSecAttrKeyTypeEC, //kSecAttrKeyTypeEC,
+            kSecAttrKeyType as String           : keyType,
             kSecMatchLimit as String            : kSecMatchLimitOne ,
             kSecReturnRef as String             : true
         ]
@@ -156,11 +236,13 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         }
     }
     
-    func isKeyCreated(tag: String) throws -> Bool?  {
+    func isKeyCreated(tag: String, flag: String) throws -> Bool?  {
         do{
-            let result =  try getSecKey(tag: tag)
+            let result =  try getSecKey(tag: tag, flag: flag)
             return result != nil ? true : false
-        } catch{
+        } catch let error{
+            print("An error occurred: \(error.localizedDescription)")
+            print("Error details: \(error)")
             throw error
         }
     }
@@ -199,25 +281,6 @@ class ModernEncryptionStrategy : EncryptionStrategy {
             print("Error exporting public key: \(error.debugDescription)")
             return nil
         }
-    }
-
-    func convertToPEMFormat(base64PublicKey: String) -> String {
-        let pemHeader = "-----BEGIN PUBLIC KEY-----\n"
-        let pemFooter = "\n-----END PUBLIC KEY-----"
-        
-        // Base64 string'i 64 karakterlik satırlara böler ve son satırda fazladan newline eklemez
-        let chunkSize = 64
-        var formattedKey = ""
-        for i in stride(from: 0, to: base64PublicKey.count, by: chunkSize) {
-            let startIndex = base64PublicKey.index(base64PublicKey.startIndex, offsetBy: i)
-            let endIndex = base64PublicKey.index(startIndex, offsetBy: chunkSize, limitedBy: base64PublicKey.endIndex) ?? base64PublicKey.endIndex
-            formattedKey += base64PublicKey[startIndex..<endIndex]
-            if endIndex < base64PublicKey.endIndex {
-                formattedKey += "\n"
-            }
-        }
-        
-        return pemHeader + formattedKey + pemFooter
     }
     
     func encrypt(message: String, tag: String) throws -> FlutterStandardTypedData?  {
@@ -259,12 +322,12 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         let secKey : SecKey
         
         do{
-            secKey = try getSecKey(tag: tag)!
+            secKey = try getSecKey(tag: tag, flag: "S")!
         } catch{
             throw error
         }
         
-        let algorithm: SecKeyAlgorithm = .rsaEncryptionPKCS1 //.eciesEncryptionCofactorVariableIVX963SHA256AESGCM
+        let algorithm: SecKeyAlgorithm = .rsaEncryptionOAEPSHA256 //.eciesEncryptionCofactorVariableIVX963SHA256AESGCM
         let cipherTextData = message as CFData
         
         guard SecKeyIsAlgorithmSupported(secKey, .decrypt, algorithm) else {

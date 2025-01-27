@@ -29,12 +29,13 @@ import io.flutter.plugin.common.StandardMethodCodec.INSTANCE
 import android.os.Build
 
 class SecureEnclavePlugin: FlutterPlugin, MethodCallHandler {
+    private lateinit var context: Context
     private lateinit var channel: MethodChannel
     private lateinit var encryptionStrategy: EncryptionStrategy
     val apiLevel = Build.VERSION.SDK_INT
    
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPluginBinding) {
-        val context = flutterPluginBinding.applicationContext
+        context = flutterPluginBinding.applicationContext
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_shield")
         channel.setMethodCallHandler(this)
         encryptionStrategy = EncryptionContext.create(apiLevel, context)
@@ -42,6 +43,37 @@ class SecureEnclavePlugin: FlutterPlugin, MethodCallHandler {
 
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
         when (call.method) {
+            "storeCertificate" -> {
+                try {
+                    val param = call.arguments as? Map<String, Any>
+                    val tag = param?.get("tag") as? String ?: ""
+                    val certificateDataBytes = (param?.get("certificateData") as? ByteArray) ?: byteArrayOf()
+                    val isSuccess = encryptionStrategy.storeCertificate(tag, certificateDataBytes)
+                    result.success(mapOf("status" to "success", "data" to isSuccess))
+                } catch (e: Exception) {
+                    result.error("ERROR", e.localizedMessage, null)
+                }
+            }
+            "getCertificate" -> {
+                try {
+                    val param = call.arguments as? Map<String, Any>
+                    val tag = param?.get("tag") as? String ?: ""
+                    val certificate = encryptionStrategy.getCertificate(tag)
+                    result.success(mapOf("status" to "success", "data" to certificate))
+                } catch (e: Exception) {
+                    result.error("ERROR", e.localizedMessage, null)
+                }
+            }
+            "removeCertificate" -> {
+                try {
+                    val param = call.arguments as? Map<String, Any>
+                    val tag = param?.get("tag") as? String ?: ""
+                    val isSuccess = encryptionStrategy.removeCertificate(tag)
+                    result.success(mapOf("status" to "success", "data" to isSuccess))
+                } catch (e: Exception) {
+                    result.error("ERROR", e.localizedMessage, null)
+                }
+            }
             "storeServerPrivateKey" -> {
                 try {
                     val param = call.arguments as? Map<String, Any>
@@ -52,7 +84,17 @@ class SecureEnclavePlugin: FlutterPlugin, MethodCallHandler {
                 } catch (e: Exception) {
                     result.error("ERROR", e.localizedMessage, null)
                 }
-            },
+            }
+            "getServerKey" -> {
+                try {
+                    val param = call.arguments as? Map<String, Any>
+                    val tag = param?.get("tag") as? String ?: ""
+                    val keyData = encryptionStrategy.getServerKey(tag)
+                    result.success(mapOf("status" to "success", "data" to keyData))
+                } catch (e: Exception) {
+                    result.error("ERROR", e.localizedMessage, null)
+                }
+            }
             "generateKeyPair" -> {
                 try {
                     val param = call.arguments as? Map<String, Any?>
@@ -74,7 +116,8 @@ class SecureEnclavePlugin: FlutterPlugin, MethodCallHandler {
                 try {
                     val param = call.arguments as? Map<String, Any>
                     val tag = param?.get("tag") as? String ?: ""
-                    encryptionStrategy.removeKey(tag)
+                    val flag = param?.get("flag") as? String ?: ""
+                    encryptionStrategy.removeKey(tag, flag)
                     result.success(mapOf("status" to "success", "data" to true))
                 } catch (e: Exception) {
                     result.error("ERROR", e.localizedMessage, null)
@@ -84,7 +127,8 @@ class SecureEnclavePlugin: FlutterPlugin, MethodCallHandler {
                 try {
                     val param = call.arguments as? Map<String, Any>
                     val tag = param?.get("tag") as? String ?: ""
-                    val isCreated = encryptionStrategy.isKeyCreated(tag)
+                    val flag = param?.get("flag") as? String ?: ""
+                    val isCreated = encryptionStrategy.isKeyCreated(tag, flag)
                     result.success(mapOf("status" to "success", "data" to isCreated))
                 } catch (e: Exception) {
                     result.success(mapOf("status" to "success", "data" to false))

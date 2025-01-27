@@ -15,7 +15,6 @@ export 'src/models/error_model.dart';
 
 class SecureEnclave implements SecureEnclaveBase {
   
-  /// decryption with secure enclave key pair
   @override
   Future<ResultModel<String?>> decrypt(
       {required String tag, required Uint8List message}) {
@@ -25,7 +24,6 @@ class SecureEnclave implements SecureEnclaveBase {
     );
   }
 
-  /// encryption with secure enclave key pair
   @override
   Future<ResultModel<Uint8List?>> encrypt(
       { required String tag, required String message}) {
@@ -35,7 +33,6 @@ class SecureEnclave implements SecureEnclaveBase {
     );
   }
 
-  /// Store Server Private Key
   @override
   Future<ResultModel<bool>> storeServerPrivateKey(
     { required String tag, required Uint8List privateKeyData }) {
@@ -43,7 +40,13 @@ class SecureEnclave implements SecureEnclaveBase {
     .storeServerPrivateKey(tag: tag, privateKeyData: privateKeyData);
   }
 
-  /// Generetes a new private/public key pair
+  @override
+  Future<ResultModel<String?>> getServerKey(
+    { required String tag }) {
+    return SecureEnclavePlatform.instance
+      .getServerKey(tag: tag);
+  }
+
   @override
   Future<ResultModel<bool>> generateKeyPair(
       {required AccessControlModel accessControl}) {
@@ -51,21 +54,16 @@ class SecureEnclave implements SecureEnclaveBase {
         .generateKeyPair(accessControl: accessControl);
   }
 
-  /// get public key representation, this method will return Base64 encode
-  /// you can share this public key to others device for sending encrypted data
-  /// to your device
   @override
   Future<ResultModel<String?>> getPublicKey(String tag) {
     return SecureEnclavePlatform.instance.getPublicKey(tag);
   }
 
-  /// remove key pair
   @override
-  Future<ResultModel<bool>> removeKey(String tag) {
-    return SecureEnclavePlatform.instance.removeKey(tag);
+  Future<ResultModel<bool>> removeKey(String tag, String flag) {
+    return SecureEnclavePlatform.instance.removeKey(tag, flag);
   }
 
-  /// generate signature from data
   @override
   Future<ResultModel<String?>> sign(
       { required String tag, required Uint8List message}) {
@@ -75,7 +73,6 @@ class SecureEnclave implements SecureEnclaveBase {
     );
   }
 
-  /// verify signature
   @override
   Future<ResultModel<bool?>> verify(
       {required String tag,
@@ -88,9 +85,23 @@ class SecureEnclave implements SecureEnclaveBase {
     );
   }
 
-  /// check status is tag available or not
   @override
-  Future<ResultModel<bool?>> isKeyCreated(String tag) {
-    return SecureEnclavePlatform.instance.isKeyCreated(tag);
+  Future<ResultModel<bool?>> isKeyCreated(String tag, String flag) {
+    return SecureEnclavePlatform.instance.isKeyCreated(tag, flag);
+  }
+  
+  @override
+  Future<ResultModel<String?>> getCertificate({required String tag}) {
+    return SecureEnclavePlatform.instance.getCertificate(tag: tag);
+  }
+  
+  @override
+  Future<ResultModel<bool>> removeCertificate({required String tag}) {
+   return SecureEnclavePlatform.instance.removeCertificate(tag: tag);
+  }
+  
+  @override
+  Future<ResultModel<bool>> storeCertificate({required String tag, required Uint8List certificateData}) {
+    return SecureEnclavePlatform.instance.storeCertificate(tag: tag, certificateData: certificateData);
   }
 }

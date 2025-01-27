@@ -30,10 +30,10 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
   }
 
   @override
-  Future<ResultModel<bool>> storeServerPrivateKey({required String tag, required Uint8List privateKeyData}) async {
+  Future<ResultModel<bool>> storeServerPrivateKey({required String tag, required Uint8List privateKeyData, dynamic context}) async {
     var privateKey = await _storage.containsKey(key: "${privateKeyStorageKey}_${tag}_ss");
     if(privateKey){
-      await removeKey("${privateKeyStorageKey}_${tag}_ss");
+      await removeKey("${privateKeyStorageKey}_${tag}_ss", "S");
     }
 
     await _storage.write(key: "${privateKeyStorageKey}_${tag}_ss", value: utf8.decode(privateKeyData));
@@ -128,7 +128,7 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
   }
 
   @override
-  Future<ResultModel<bool?>> isKeyCreated(String tag) async {
+  Future<ResultModel<bool?>> isKeyCreated(String tag, String flag) async {
     try {
       var publicKey = await _storage.containsKey(key: publicKeyStorageKey + tag);
       var privateKey = await _storage.containsKey(key: privateKeyStorageKey + tag);
@@ -147,7 +147,7 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
   }
 
   @override
-  Future<ResultModel<bool>> removeKey(String tag) async {
+  Future<ResultModel<bool>> removeKey(String tag, String flag) async {
     await _storage.delete(key: publicKeyStorageKey + tag);
     await _storage.delete(key: privateKeyStorageKey + tag);
     return ResultModel.fromMap(
@@ -305,5 +305,29 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
     }
 
     return output;
+  }
+  
+  @override
+  Future<ResultModel<String?>> getCertificate({required String tag}) {
+    // TODO: implement getCertificate
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<ResultModel<bool>> removeCertificate({required String tag}) {
+    // TODO: implement removeCertificate
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<ResultModel<bool>> storeCertificate({required String tag, required Uint8List certificateData}) {
+    // TODO: implement storeCertificate
+    throw UnimplementedError();
+  }
+  
+  @override
+  Future<ResultModel<String?>> getServerKey({required String tag}) {
+    // TODO: implement getServerKey
+    throw UnimplementedError();
   }
 }

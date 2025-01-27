@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 class CanonicalJsonSerializer {
   static String serialize(Object? obj) {

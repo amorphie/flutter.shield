@@ -4,29 +4,29 @@ import LocalAuthentication
 // Abstraction/Protocol class of EncryptionStrategy
 protocol EncryptionStrategy {
     
-    func storeServerPrivateKey(privateKeyData: Data, tag: String) throws -> Bool
+    func storeCertificate(certificateData: Data, tag: String) throws -> Bool
+
+    func getCertificate(tag: String) throws -> String?
+
+    func removeCertificate(tag: String) throws -> Bool
     
-    // create and store private key to secure enclave
+    func storeServerPrivateKey(privateKeyData: Data, tag: String) throws -> Bool
+
+    func getServerKey(tag: String) throws -> String?
+    
     func generateKeyPair(accessControlParam: AccessControlParam) throws -> SecKey
     
-    // remove key from secure enclave
-    func removeKey(tag: String) throws -> Bool
+    func removeKey(tag: String, flag: String) throws -> Bool
     
-    // get status SecKey key from secure enclave (private method)
-    func isKeyCreated(tag: String) throws -> Bool?
+    func isKeyCreated(tag: String, flag: String) throws -> Bool?
     
-    // get publicKey key from secure enclave
     func getPublicKey(tag: String) throws -> String?
     
-    // encryption
     func encrypt(message: String, tag: String) throws -> FlutterStandardTypedData?
     
-    // decryption
     func decrypt(message: Data, tag: String) throws -> String?
     
-    // sign
     func sign(tag: String, message: Data) throws -> String?
     
-    // verify
     func verify(tag: String, plainText: String, signature: String) throws -> Bool
 }

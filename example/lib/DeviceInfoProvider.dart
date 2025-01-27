@@ -7,7 +7,6 @@ class DeviceInfoProvider extends ChangeNotifier {
   String get deviceId => _deviceId;
   String get tag => _tag;
   String get clientKey => "$_deviceId$_tag";
-  String get serverKey => "$_deviceId${_tag}_ss";
 
   void setDeviceId(String deviceId) {
     _deviceId = deviceId;

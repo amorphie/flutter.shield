@@ -14,6 +14,35 @@ public class SwiftSecureEnclavePlugin: NSObject, FlutterPlugin {
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method{
+        case "storeCertificate":
+            do{
+                let param = call.arguments as? Dictionary<String, Any>
+                let tag = param!["tag"] as! String
+                let certificateData = param!["certificateData"] as! FlutterStandardTypedData
+                let isSuccess = try encryptionStrategy.storeCertificate(certificateData: certificateData.data, tag: tag)
+                result(resultSuccess(data:isSuccess))
+            } catch {
+                result(resultError(error:error))
+            }
+         case "getCertificate":
+            do{
+                let param = call.arguments as? Dictionary<String, Any>
+                let tag = param!["tag"] as! String
+                let certificate = try encryptionStrategy.getCertificate(tag: tag)
+                result(resultSuccess(data:certificate))
+            } catch {
+                result(resultError(error:error))
+            }
+        case "removeCertificate":
+            do{
+                let param = call.arguments as? Dictionary<String, Any>
+                let tag = param!["tag"] as! String
+                let isSuccess = try encryptionStrategy.removeCertificate(tag: tag)
+                result(resultSuccess(data:isSuccess))
+            } catch {
+                result(resultError(error:error))
+            }
+            
         case "storeServerPrivateKey":
             do{
                 let param = call.arguments as? Dictionary<String, Any>
@@ -21,6 +50,16 @@ public class SwiftSecureEnclavePlugin: NSObject, FlutterPlugin {
                 let privateKeyData = param!["privateKeyData"] as! FlutterStandardTypedData
                 let isSuccess = try encryptionStrategy.storeServerPrivateKey(privateKeyData: privateKeyData.data, tag: tag)
                 result(resultSuccess(data:isSuccess))
+            } catch {
+                result(resultError(error:error))
+            }
+            
+        case "getServerKey":
+            do{
+                let param = call.arguments as? Dictionary<String, Any>
+                let tag = param!["tag"] as! String
+                let privateKeyData = try encryptionStrategy.getServerKey(tag: tag)
+                result(resultSuccess(data:privateKeyData))
             } catch {
                 result(resultError(error:error))
             }
@@ -39,8 +78,9 @@ public class SwiftSecureEnclavePlugin: NSObject, FlutterPlugin {
         case "removeKey":
             do{
                 let param = call.arguments as? Dictionary<String, Any>
-                let tag = param!["tag"] as! String             
-                let isSuccess = try encryptionStrategy.removeKey(tag: tag)
+                let tag = param!["tag"] as! String
+                let flag = param!["flag"] as! String             
+                let isSuccess = try encryptionStrategy.removeKey(tag: tag, flag: flag)
                 result(resultSuccess(data:isSuccess))
             } catch {
                 result(resultError(error:error))
@@ -50,7 +90,8 @@ public class SwiftSecureEnclavePlugin: NSObject, FlutterPlugin {
             do{
                 let param = call.arguments as? Dictionary<String, Any>
                 let tag = param!["tag"] as! String
-                let key = try encryptionStrategy.isKeyCreated(tag: tag)
+                let flag = param!["flag"] as! String             
+                let key = try encryptionStrategy.isKeyCreated(tag: tag, flag: flag)
                 result(resultSuccess(data:key!))
             } catch {
                 result(resultSuccess(data:false))

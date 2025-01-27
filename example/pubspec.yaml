@@ -36,6 +36,7 @@ dependencies:
   provider: ^6.0.5
   canonical_json: ^1.1.2
   crypto: ^3.0.0
+  system_proxy: 0.1.0
 
 dev_dependencies:
   integration_test:

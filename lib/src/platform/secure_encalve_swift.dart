@@ -56,6 +56,24 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
     );
   }
 
+  @override
+  Future<ResultModel<String?>> getServerKey(
+      { required String tag }) async {
+    final result = await methodChannel.invokeMethod<dynamic>(
+      'getServerKey',
+      {
+        "tag": tag
+      }
+    );
+
+    return ResultModel.fromMap(
+      map: Map<String, dynamic>.from(result),
+      decoder: (rawData) {
+        return rawData as String?;
+      },
+    );
+  }
+
   /// Generetes a new private/public key pair
   @override
   Future<ResultModel<bool>> generateKeyPair(
@@ -77,11 +95,12 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
 
   /// remove key pair
   @override
-  Future<ResultModel<bool>> removeKey(String tag) async {
+  Future<ResultModel<bool>> removeKey(String tag, String flag) async {
     final result = await methodChannel.invokeMethod<dynamic>(
       'removeKey',
       {
-        "tag": tag
+        "tag": tag,
+        "flag": flag
       }
     );
 
@@ -155,11 +174,12 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
 
   /// check status is tag available or not
   @override
-  Future<ResultModel<bool?>> isKeyCreated(String tag) async {
+  Future<ResultModel<bool?>> isKeyCreated(String tag, String flag) async {
     final result = await methodChannel.invokeMethod<dynamic>(
       'isKeyCreated',
       {
-        "tag": tag
+        "tag": tag,
+        "flag": flag
       }
     );
 
@@ -210,6 +230,58 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
       map: Map<String, dynamic>.from(result),
       decoder: (rawData) {
         return rawData as bool?;
+      },
+    );
+  }
+  
+  @override
+  Future<ResultModel<String?>> getCertificate({required String tag}) async {
+    final result = await methodChannel.invokeMethod<dynamic>(
+      'getCertificate',
+      {
+        "tag": tag
+      }
+    );
+
+    return ResultModel.fromMap(
+      map: Map<String, dynamic>.from(result),
+      decoder: (rawData) {
+        return rawData as String?;
+      },
+    );
+  }
+  
+  @override
+  Future<ResultModel<bool>> removeCertificate({required String tag}) async {
+    final result = await methodChannel.invokeMethod<dynamic>(
+      'removeCertificate',
+      {
+        "tag": tag
+      }
+    );
+
+    return ResultModel.fromMap(
+      map: Map<String, dynamic>.from(result),
+      decoder: (rawData) {
+        return rawData as bool;
+      },
+    );
+  }
+  
+  @override
+  Future<ResultModel<bool>> storeCertificate({required String tag, required Uint8List certificateData}) async {
+    final result = await methodChannel.invokeMethod<dynamic>(
+      'storeCertificate',
+      {
+        "tag": tag,
+        "certificateData": certificateData
+      }
+    );
+
+    return ResultModel.fromMap(
+      map: Map<String, dynamic>.from(result),
+      decoder: (rawData) {
+        return rawData as bool;
       },
     );
   }

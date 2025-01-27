@@ -1,21 +1,34 @@
 package id.my.burganbank.flutter_shield
 
 import java.security.KeyPair
+import android.content.Context
 import id.my.burganbank.flutter_shield.model.*
 
 interface EncryptionStrategy {
 
     @Throws(Exception::class)
+    fun storeCertificate(tag: String, certificateData: ByteArray): Boolean
+
+    @Throws(Exception::class)
+    fun getCertificate(tag: String): String?
+
+    @Throws(Exception::class)
+    fun removeCertificate(tag: String): Boolean
+    
+    @Throws(Exception::class)
     fun storeServerPrivateKey(tag: String, privateKeyData: ByteArray): Boolean
+
+    @Throws(Exception::class)
+    fun getServerKey(tag: String): String?
 
     @Throws(Exception::class)
     fun generateKeyPair(accessControlParam: AccessControlParam): KeyPair
 
     @Throws(Exception::class)
-    fun removeKey(tag: String): Boolean
+    fun removeKey(tag: String, flag: String): Boolean
 
     @Throws(Exception::class)
-    fun isKeyCreated(tag: String): Boolean?
+    fun isKeyCreated(tag: String, flag: String): Boolean?
 
     @Throws(Exception::class)
     fun getPublicKey(tag: String): String?

@@ -1,11 +1,16 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_shield_example/DeviceInfoProvider.dart';
+import 'package:flutter_shield_example/ProxiedHttpOverrides.dart';
 import 'package:flutter_shield_example/dashboard.dart';
 import 'package:provider/provider.dart';
 
 final _messangerKey = GlobalKey<ScaffoldMessengerState>();
 
 void main() {
+  
   runApp(
     MultiProvider(
       providers: [
@@ -14,6 +19,10 @@ void main() {
       child: MyApp(),
     ),
   );
+
+  if(!kIsWeb){
+    ProxiedHttpOverrides.addSystemProxy();
+  }
 }
 
 class MyApp extends StatefulWidget {

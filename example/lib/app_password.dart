@@ -1,11 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_shield/secure_enclave.dart';
-import 'package:convert/convert.dart';
 import 'package:flutter_shield_example/DeviceInfoProvider.dart';
-import 'package:flutter_shield_example/utils.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
@@ -92,7 +89,7 @@ class _AppPasswordState extends State<AppPassword> {
       final encryptData = jsonData["encryptData"];
 
       ResultModel response = await _secureEnclavePlugin.decrypt(
-          tag: deviceInfoProvider.serverKey,
+          tag: deviceInfoProvider.clientKey,
           message: base64Decode(encryptData));
       if (response.value != null) {
         decryptPlainText.text = response.value;

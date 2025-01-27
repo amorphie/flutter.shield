@@ -18,7 +18,7 @@ void main(){
         await widgetTester.pumpAndSettle();
 
         SecureEnclave secureEnclave = SecureEnclave();
-        await secureEnclave.removeKey(tagNormal).then((result){
+        await secureEnclave.removeKey(tagNormal, "C").then((result){
 
         });
       });
@@ -52,7 +52,7 @@ void main(){
         await widgetTester.pumpAndSettle();
 
         SecureEnclave secureEnclave = SecureEnclave();
-        await secureEnclave.removeKey(tagNormal).then((result){
+        await secureEnclave.removeKey(tagNormal, "C").then((result){
           checkResult(result: result, onSuccess: (){
             expect(result.value, true);
           });
@@ -65,7 +65,7 @@ void main(){
         await widgetTester.pumpAndSettle();
 
         SecureEnclave secureEnclave = SecureEnclave();
-        await secureEnclave.removeKey('dasdasdas').then((result){
+        await secureEnclave.removeKey('dasdasdas', "C").then((result){
           checkResult(result: result, onSuccess: (){
             expect(result.value, false);
           });
@@ -188,7 +188,7 @@ Future<void> requireSetup(String tagNormal) async {
 
         SecureEnclave secureEnclave = SecureEnclave();
 
-        await secureEnclave.removeKey(tagNormal);
+        await secureEnclave.removeKey(tagNormal, "C");
 
         await secureEnclave.generateKeyPair(accessControl: AccessControlModel(options: [AccessControlOption.privateKeyUsage], tag: tagNormal));
 
@@ -197,7 +197,7 @@ Future<void> requireSetup(String tagNormal) async {
   tearDownAll(() async{
 
         SecureEnclave secureEnclave = SecureEnclave();
-        await secureEnclave.removeKey(tagNormal);
+        await secureEnclave.removeKey(tagNormal, "C");
   });
 }
 

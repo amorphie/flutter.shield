@@ -6,6 +6,10 @@ allprojects {
 }
 
 rootProject.buildDir = '../build'
+
+// android {
+//     namespace 'id.my.burganbank.flutter_shield'
+// }
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }

@@ -5,34 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "flutter_secure_enclave",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
-            "name": "flutter_secure_enclave (profile mode)",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "profile"
-        },
-        {
-            "name": "flutter_secure_enclave (release mode)",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "release"
-        },
-        {
             "name": "example",
             "cwd": "example",
             "request": "launch",
             "type": "dart"
-        },
-        {
-            "name": "example (profile mode)",
-            "cwd": "example",
-            "request": "launch",
-            "type": "dart",
-            "flutterMode": "profile"
         },
         {
             "name": "example (release mode)",
@@ -46,14 +22,21 @@
             "request": "launch",
             "type": "dart",
             "flutterMode": "debug",
-            "deviceId": "9F96D83A-653B-4E65-88F3-1FBF1F7B48EF" // Bu ID'yi `flutter devices` komutuyla kontrol edin.
+            "deviceId": "9F96D83A-653B-4E65-88F3-1FBF1F7B48EF"
         },
         {
             "name": "yilmaz.132’s iPhone (Debug Mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "debug",
-            "deviceId": "00008130-000A10603AA0001C" // Bu ID'yi `flutter devices` komutuyla kontrol edin.
+            "deviceId": "00008130-000A10603AA0001C"
+        },
+        {
+            "name": "Flutter gphone64 arm64 (mobile) (Debug Mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "deviceId": "emulator-5554"
         }
     ]
 }

@@ -26,7 +26,7 @@ class _AppGenerateCertState extends State<AppGenerateCert> {
   Future<bool> _generateClientCert(String deviceId) async {
     try {
       final bool status = (await _secureEnclavePlugin
-                  .isKeyCreated("$deviceId${tagController.text}"))
+                  .isKeyCreated("$deviceId${tagController.text}", "C"))
               .value ??
           false;
 
@@ -34,8 +34,6 @@ class _AppGenerateCertState extends State<AppGenerateCert> {
         ResultModel res = await _secureEnclavePlugin.generateKeyPair(
           accessControl: AccessControlModel(
             options: [
-              // AccessControlOption.or,
-              // AccessControlOption.devicePasscode,
               AccessControlOption.privateKeyUsage
             ],
             tag: "$deviceId${tagController.text}",
@@ -53,7 +51,7 @@ class _AppGenerateCertState extends State<AppGenerateCert> {
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Key already exists!')),
+          const SnackBar(content: Text('Client Keys already exists!')),
         );
         return true;
       }
@@ -68,7 +66,7 @@ class _AppGenerateCertState extends State<AppGenerateCert> {
   Future _generateServerCert(String deviceId, String publicKey) async {
     try {
       final bool status = (await _secureEnclavePlugin
-                  .isKeyCreated("$deviceId${tagController.text}_ss"))
+                  .isKeyCreated("$deviceId${tagController.text}", "S"))
               .value ??
           false;
       if (status == true) {
@@ -124,12 +122,25 @@ class _AppGenerateCertState extends State<AppGenerateCert> {
           final privateKeyEncode = certResponse["data"]["additionalData"]
               ["serverCertCreateResult"]["data"]["privateKey"];
           final privateKey = base64Decode(privateKeyEncode);
-          final storedKey = await _secureEnclavePlugin.storeServerPrivateKey(
+          final storedPrivateKey = await _secureEnclavePlugin.storeServerPrivateKey(
               tag: "$deviceId${tagController.text}",
               privateKeyData: privateKey);
-          if (storedKey.value) {
+
+          final certificateDataRaw = certResponse["data"]["additionalData"]
+              ["serverCertCreateResult"]["data"]["certificate"];
+
+
+          final certificateData = utf8.encode(certificateDataRaw);
+
+          final storedCertificate = await _secureEnclavePlugin.storeCertificate(
+            tag: "$deviceId${tagController.text}", 
+            certificateData: certificateData);
+
+          print('Certificate stored successful');
+
+          if (storedPrivateKey.value) {
             ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Create cerfiticate successful.')));
+                SnackBar(content: Text('Server create cerfiticate successful.')));
           } else {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content:
@@ -188,26 +199,17 @@ class _AppGenerateCertState extends State<AppGenerateCert> {
                   final createClientResponse =
                       await _generateClientCert(deviceId);
 
-                  if (!createClientResponse) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Client cert creating error!')),
-                    );
-                  }
-
-                  final publicKeyResponse = await _secureEnclavePlugin
+                  if (createClientResponse) {
+                    final publicKeyResponse = await _secureEnclavePlugin
                       .getPublicKey("$deviceId${tagController.text}");
-                  await _generateServerCert(deviceId, publicKeyResponse.value!);
+                     await _generateServerCert(deviceId, publicKeyResponse.value!);
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Key generated successfully!')),
-                  );
-                  // Diğer sayfaya geçiş
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Dashboard()),
-                  );
+                      // Diğer sayfaya geçiş
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => Dashboard()),
+                      );
+                  }
                 } catch (e) {
                   ScaffoldMessenger.of(context)
                       .showSnackBar(SnackBar(content: Text(e.toString())));
@@ -239,13 +241,13 @@ class _AppGenerateCertState extends State<AppGenerateCert> {
                   String deviceId = await getDeviceId();
 
                   await _secureEnclavePlugin
-                      .removeKey("$deviceId${tagController.text}");
+                      .removeKey("$deviceId${tagController.text}", "C");
 
                   await _secureEnclavePlugin
-                      .removeKey("$deviceId${tagController.text}_ss");
+                      .removeKey("$deviceId${tagController.text}", "S");
 
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Key remove successfully!')),
+                    const SnackBar(content: Text('Server and Client keys remove successfully!')),
                   );
                   // Diğer sayfaya geçiş
                   Navigator.push(
