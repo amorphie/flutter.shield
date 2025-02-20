@@ -69,7 +69,7 @@ class SecureEnclave implements SecureEnclaveBase {
   @override
   Future<ResultModel<String?>> sign(
       { required String tag, required Uint8List message}) async {
-      final String hashString = CanonicalJsonSerializer.hashData(utf8.decode(message));
+      final String hashString = CanonicalJsonSerializer.hashData(jsonEncode(utf8.decode(message)));
        final Uint8List hashBytes = Uint8List.fromList(utf8.encode(hashString));
       final result = await  SecureEnclavePlatform.instance.sign(
         tag: tag,
