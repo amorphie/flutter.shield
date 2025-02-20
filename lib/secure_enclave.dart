@@ -1,11 +1,13 @@
 library flutter_shield;
 
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_shield/secure_enclave_base.dart';
 import 'package:flutter_shield/src/models/access_control_model.dart';
 import 'package:flutter_shield/src/models/result_model.dart';
 
+import 'CanonicalJsonSerializer.dart';
 import 'src/platform/secure_encalve_swift.dart';
 
 export 'src/constants/access_control_option.dart';
@@ -66,11 +68,22 @@ class SecureEnclave implements SecureEnclaveBase {
 
   @override
   Future<ResultModel<String?>> sign(
-      { required String tag, required Uint8List message}) {
-    return SecureEnclavePlatform.instance.sign(
-      tag: tag,
-      message: message
-    );
+      { required String tag, required Uint8List message}) async {
+      final String hashString = CanonicalJsonSerializer.hashData(utf8.decode(message));
+       final Uint8List hashBytes = Uint8List.fromList(utf8.encode(hashString));
+      final result = await  SecureEnclavePlatform.instance.sign(
+        tag: tag,
+        message: hashBytes
+      );
+
+      final String? base64Result = result.value != null ? base64Encode(utf8.encode(result.toString())) : null;
+
+      return ResultModel.fromMap(
+        map: Map<String, dynamic>.from({"data": base64Result}),
+        decoder: (rawData) {
+          return rawData as String?;
+        },
+      );
   }
 
   @override
