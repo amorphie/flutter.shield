@@ -228,7 +228,7 @@ class ModernEncryptionStrategy(private val context: Context) : EncryptionStrateg
         val signature = Signature.getInstance("SHA256withECDSA")
         signature.initSign(privateKey)
         signature.update(message)
-        return Base64.encodeToString(signature.sign(), Base64.DEFAULT)
+        return Base64.encodeToString(signature.sign(), Base64.NO_WRAP)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -240,6 +240,6 @@ class ModernEncryptionStrategy(private val context: Context) : EncryptionStrateg
         val signatureInstance = Signature.getInstance("SHA256withECDSA")
         signatureInstance.initVerify(publicKey)
         signatureInstance.update(plainText.toByteArray())
-        return signatureInstance.verify(Base64.decode(signature, Base64.DEFAULT))
+        return signatureInstance.verify(Base64.decode(signature, Base64.NO_WRAP))
     }
 }

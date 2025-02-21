@@ -40,7 +40,7 @@ class LegacyEncryptionStrategy(private val context: Context) : EncryptionStrateg
     fun getServerPrivateKey(tag: String): PrivateKey? {
         return try {
             val privateKeyString = sharedPreferences.getString(tag + "_ss", "") ?: return null
-            val privateKeyData = Base64.decode(privateKeyString, Base64.DEFAULT)
+            val privateKeyData = Base64.decode(privateKeyString, Base64.NO_WRAP)
 
             val keyFactory = KeyFactory.getInstance("RSA")
             val pkcs8KeySpec = PKCS8EncodedKeySpec(privateKeyData)
@@ -126,7 +126,7 @@ class LegacyEncryptionStrategy(private val context: Context) : EncryptionStrateg
             val pkcs8KeySpec = PKCS8EncodedKeySpec(privateKeyData)
             val privateKey = keyFactory.generatePrivate(pkcs8KeySpec)
 
-            val base64EncodedKey = Base64.encodeToString(privateKeyData, Base64.NO_WRAP)
+            val base64EncodedKey = Base64.encodeToString(privateKeyData, Base64.DEFAULT)
 
             val pemKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
                     base64EncodedKey.chunked(64).joinToString("\n") +
@@ -218,7 +218,7 @@ class LegacyEncryptionStrategy(private val context: Context) : EncryptionStrateg
         val signature = Signature.getInstance("SHA256withECDSA")
         signature.initSign(privateKey)
         signature.update(message)
-        return Base64.encodeToString(signature.sign(), Base64.DEFAULT)
+        return Base64.encodeToString(signature.sign(), Base64.NO_WRAP)
     }
 
     override fun verify(tag: String, plainText: String, signature: String): Boolean {
@@ -229,6 +229,6 @@ class LegacyEncryptionStrategy(private val context: Context) : EncryptionStrateg
         val signatureInstance = Signature.getInstance("SHA256withECDSA")
         signatureInstance.initVerify(publicKey)
         signatureInstance.update(plainText.toByteArray())
-        return signatureInstance.verify(Base64.decode(signature, Base64.DEFAULT))
+        return signatureInstance.verify(Base64.decode(signature, Base64.NO_WRAP))
     }
 }
