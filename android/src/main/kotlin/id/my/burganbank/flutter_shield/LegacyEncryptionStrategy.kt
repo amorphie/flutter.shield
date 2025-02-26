@@ -105,9 +105,9 @@ class LegacyEncryptionStrategy(private val context: Context) : EncryptionStrateg
                .replace("-----END RSA PRIVATE KEY-----", "")
                .replace("\n", "")
 
-           val derData = Base64.decode(base64Encoded, Base64.DEFAULT)
+           val derData = Base64.decode(base64Encoded, Base64.NO_WRAP)
 
-           val privateKeyString = Base64.encodeToString(derData, Base64.DEFAULT)
+           val privateKeyString = Base64.encodeToString(derData, Base64.NO_WRAP)
            editor.putString(tag + "_ss", privateKeyString).apply()
 
             true
@@ -120,13 +120,13 @@ class LegacyEncryptionStrategy(private val context: Context) : EncryptionStrateg
     override fun getServerKey(tag: String): String? {
         return try {
             val privateKeyString = sharedPreferences.getString("${tag}_ss", null) ?: return null
-            val privateKeyData = Base64.decode(privateKeyString, Base64.DEFAULT)
+            val privateKeyData = Base64.decode(privateKeyString, Base64.NO_WRAP)
 
             val keyFactory = KeyFactory.getInstance("RSA")
             val pkcs8KeySpec = PKCS8EncodedKeySpec(privateKeyData)
             val privateKey = keyFactory.generatePrivate(pkcs8KeySpec)
 
-            val base64EncodedKey = Base64.encodeToString(privateKeyData, Base64.DEFAULT)
+            val base64EncodedKey = Base64.encodeToString(privateKeyData, Base64.NO_WRAP)
 
             val pemKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
                     base64EncodedKey.chunked(64).joinToString("\n") +
@@ -190,7 +190,7 @@ class LegacyEncryptionStrategy(private val context: Context) : EncryptionStrateg
         val keyStore = getInstance("AndroidKeyStore")
         keyStore.load(null)
         val publicKey = keyStore.getCertificate(tag)?.publicKey
-        return publicKey?.let { Base64.encodeToString(it.encoded, Base64.DEFAULT) }
+        return publicKey?.let { Base64.encodeToString(it.encoded, Base64.NO_WRAP) }
     }
 
     override fun encrypt(message: String, tag: String): ByteArray? {
