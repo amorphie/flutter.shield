@@ -21,8 +21,7 @@
             "name": "Flutter iPhone 15 Pro (Debug Mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "debug",
-            "deviceId": "9F96D83A-653B-4E65-88F3-1FBF1F7B48EF"
+            "flutterMode": "debug"
         },
         {
             "name": "yilmaz.132’s iPhone (Debug Mode)",
