@@ -34,8 +34,7 @@
             "name": "Flutter gphone64 arm64 (mobile) (Debug Mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "debug",
-            "deviceId": "emulator-5554"
+            "flutterMode": "debug"
         }
     ]
 }

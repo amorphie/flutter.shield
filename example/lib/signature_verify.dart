@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_shield/CanonicalJsonSerializer.dart';
 import 'package:flutter_shield/secure_enclave.dart';
-import 'package:flutter_shield_example/CanonicalJsonSerializer.dart';
 import 'package:flutter_shield_example/DeviceInfoProvider.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -30,18 +31,11 @@ class _SignatureVerifyState extends State<SignatureVerify> {
   Widget build(BuildContext context) {
     final deviceInfoProvider = Provider.of<DeviceInfoProvider>(context);
 
-    String hashData(String jsonData) {
-      final dataObject = json.decode(jsonData);
-      final dataRawSerialize = CanonicalJsonSerializer.serialize(dataObject);
-      final digest = sha256.convert(utf8.encode(dataRawSerialize));
-      return digest.toString();
-    }
-
     Future sign() async {
-      final dataRaw = hashData(plainText.text);
       ResultModel response = await _secureEnclavePlugin.sign(
           tag: deviceInfoProvider.clientKey,
-          message: utf8.encode(dataRaw)); //utf8.encode(json.encode(dataRaw))
+          message: utf8.encode(plainText.text)
+          );
 
       if (response.error == null) {
         signatureText.text = response.value.toString();
@@ -57,64 +51,59 @@ class _SignatureVerifyState extends State<SignatureVerify> {
       verifyText.text = "";
       setState(() {});
 
-      final instanceId = uuid.v4();
-      final tokenId = uuid.v4();
       var url = Uri.parse(
-          'https://dev-amorphie-workflow.burgan.com.tr/workflow/instance/$instanceId/transition/verify-transaction-send-sign');
+          'http://localhost:5111/jws/verify');
       final dataObject = json.decode(plainText.text);
+      try {
+        final dataRaw = CanonicalJsonSerializer.hashData(plainText.text);
+        final clientverifyRes = await _secureEnclavePlugin.verify(
+          tag: deviceInfoProvider.clientKey, plainText: dataRaw, signature: signatureText.text
+          );
 
-      var verifyData = {"signData": signatureText.text, "rawData": dataObject};
+        if (clientverifyRes.value == true) {
 
-      final creationResponse = await http.post(url,
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('CLIENT Verification successful.')));
+        } else {
+
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('ERROR. Verification failed.')));
+        }
+
+        final verifyResponse = await http.post(url,
           headers: {
             'Content-Type': 'application/json',
             'user_reference': deviceInfoProvider.tag,
-            'X-Device-Id': deviceInfoProvider.deviceId,
-            'X-Token-Id': tokenId,
-            'X-Request-Id': uuid.v4(),
-            'User': uuid.v4(),
-            'Behalf-Of-User': uuid.v4()
+            'x_device_id': deviceInfoProvider.deviceId,
+            'x_installation_id': deviceInfoProvider.deviceId,
+            'x_request_id': uuid.v4(),
+            'x_jws_signature': signatureText.text
           },
-          body: json.encode(verifyData));
+          body: json.encode(dataObject)); 
+        final responseBody = jsonDecode(verifyResponse.body);
+        if (verifyResponse.statusCode == 200) {
+            try {
+              verifyText.text = "true";
+              setState(() {});
 
-      if (creationResponse.statusCode == 200) {
-        //For Longpooling
-        await Future.delayed(Duration(seconds: 3));
-        url = Uri.parse(
-            "https://dev-amorphie-workflow-hub.burgan.com.tr/longpooling/VerifyTransactionSubFlow?instanceId=$instanceId");
-        final createdResponse = await http.get(url, headers: {
-          'Content-Type': 'application/json',
-          'user_reference': deviceInfoProvider.tag,
-          'X-Device-Id': deviceInfoProvider.deviceId,
-          'X-Token-Id': tokenId,
-          'X-Request-Id': uuid.v4(),
-          'User': uuid.v4(),
-          'Behalf-Of-User': uuid.v4()
-        });
-
-        if (createdResponse.statusCode == 200) {
-          final responseBody = json.decode(createdResponse.body);
-          try {
-            final verifyResult =
-                responseBody["data"]["additionalData"]["verifyResult"]["data"];
-
-            verifyText.text = json.encode(verifyResult);
-            setState(() {});
-
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text('Verify successful.')));
-          } catch (e) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text('Verify failed.')));
-          }
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text('Verify successful.')));
+            } catch (e) {
+              verifyText.text = "false";
+              setState(() {});
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text('Verify failed.')));
+            }
         } else {
+          verifyText.text = "false";
+              setState(() {});
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content:
-                  Text('ERROR. No response received from verify request.')));
+              content: Text('ERROR. ' + responseBody["error"]["message"].toString())));
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('ERROR. Verify request could not be sent.')));
+      } catch (e) {
+        log(e.toString());
+         ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
 

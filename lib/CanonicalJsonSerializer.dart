@@ -7,7 +7,7 @@ class CanonicalJsonSerializer {
   }
 
   static String hashData(String jsonData) {
-     final dataObject = json.decode(jsonData);
+      final dataObject = json.decode(jsonData);
       final dataRawSerialize = _serializeObject(dataObject);
       final digest = sha256.convert(utf8.encode(dataRawSerialize));
       return digest.toString();

@@ -261,25 +261,6 @@ class LegacyEncryptionStrategy : EncryptionStrategy {
         }
     }
     
-    func convertToPEMFormat(base64PublicKey: String) -> String {
-        let pemHeader = "-----BEGIN PUBLIC KEY-----\n"
-        let pemFooter = "\n-----END PUBLIC KEY-----"
-        
-        // Base64 string'i 64 karakterlik satırlara böler ve son satırda fazladan newline eklemez
-        let chunkSize = 64
-        var formattedKey = ""
-        for i in stride(from: 0, to: base64PublicKey.count, by: chunkSize) {
-            let startIndex = base64PublicKey.index(base64PublicKey.startIndex, offsetBy: i)
-            let endIndex = base64PublicKey.index(startIndex, offsetBy: chunkSize, limitedBy: base64PublicKey.endIndex) ?? base64PublicKey.endIndex
-            formattedKey += base64PublicKey[startIndex..<endIndex]
-            if endIndex < base64PublicKey.endIndex {
-                formattedKey += "\n"
-            }
-        }
-        
-        return pemHeader + formattedKey + pemFooter
-    }
-    
     func encrypt(message: String, tag: String) throws -> FlutterStandardTypedData?  {
         let secKey : SecKey
         let publicKey : SecKey
@@ -358,7 +339,7 @@ class LegacyEncryptionStrategy : EncryptionStrategy {
         } catch {
             throw error
         }
-
+        
         var error: Unmanaged<CFError>?
         guard let signData = SecKeyCreateSignature(
             secKey,
@@ -375,41 +356,40 @@ class LegacyEncryptionStrategy : EncryptionStrategy {
         return signedString
     }
     
-    
     func verify(tag: String, plainText: String, signature: String) throws -> Bool {
-        let externalKeyB64String : String
-        
-        guard Data(base64Encoded: signature) != nil else {
-            return false
-        }
-        
-        do{
-            externalKeyB64String = try getPublicKey(tag: tag)!
-        } catch{
-            throw error
-        }
-        
-        //convert b64 key back to usable key
-        let newPublicKeyData = Data(base64Encoded: externalKeyB64String, options: [])
-        let newPublicParams: [String: Any] = [
-            kSecAttrKeyType as String: kSecAttrKeyTypeEC, //kSecAttrKeyTypeEC,
-            kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
-            kSecAttrKeySizeInBits as String: 256
-        ]
-        guard let newPublicKey = SecKeyCreateWithData(newPublicKeyData! as CFData, newPublicParams as CFDictionary, nil) else {
-            return false
-        }
-        
-        let normalizedPlainText = plainText.precomposedStringWithCanonicalMapping
-        guard let messageData = normalizedPlainText.data(using: String.Encoding.utf8) else {
-            return false
-        }
-        
-        guard let signatureData = Data(base64Encoded: signature, options: []) else {
-            return false
-        }
-        
-        let verify = SecKeyVerifySignature(newPublicKey, SecKeyAlgorithm.ecdsaSignatureMessageX962SHA256, messageData as CFData, signatureData as CFData, nil)
-        return verify
+        // Base64 decode the signature
+            guard let signatureData = Data(base64Encoded: signature) else {
+                return false
+            }
+
+            // Get the existing key pair from Secure Enclave / Keychain
+            let secKey = try getSecKey(tag: tag)!
+            
+            // Get public key reference from private key
+            guard let publicKey = SecKeyCopyPublicKey(secKey) else {
+                throw CustomError.runtimeError("Public key not found")
+            }
+
+            // Normalize the plaintext and convert to data
+            let normalizedPlainText = plainText.precomposedStringWithCanonicalMapping
+            guard let messageData = normalizedPlainText.data(using: .utf8) else {
+                return false
+            }
+
+            // Check algorithm support
+            let algorithm: SecKeyAlgorithm = .ecdsaSignatureMessageX962SHA256
+            guard SecKeyIsAlgorithmSupported(publicKey, .verify, algorithm) else {
+                throw CustomError.runtimeError("Algorithm not supported for verification")
+            }
+
+            // Perform signature verification
+            let verifyRes =  SecKeyVerifySignature(
+                publicKey,
+                algorithm,
+                messageData as CFData,
+                signatureData as CFData,
+                nil
+            )
+        return verifyRes;
     }
 }
