@@ -69,21 +69,12 @@ class SecureEnclave implements SecureEnclaveBase {
   @override
   Future<ResultModel<String?>> sign(
       { required String tag, required Uint8List message}) {
-      final String hashString = CanonicalJsonSerializer.hashData(jsonEncode(utf8.decode(message)));
-       final Uint8List hashBytes = Uint8List.fromList(utf8.encode(hashString));
+      final String hashString = CanonicalJsonSerializer.hashData(utf8.decode(message));
+      final Uint8List hashBytes = Uint8List.fromList(utf8.encode(hashString));
       return SecureEnclavePlatform.instance.sign(
         tag: tag,
         message: hashBytes
       );
-
-      // final String? base64Result = result.value != null ? base64Encode(utf8.encode(result.toString())) : null;
-
-      // return ResultModel.fromMap(
-      //   map: Map<String, dynamic>.from({"data": base64Result}),
-      //   decoder: (rawData) {
-      //     return rawData as String?;
-      //   },
-      // );
   }
 
   @override
