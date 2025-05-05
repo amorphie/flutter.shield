@@ -87,7 +87,9 @@ class LegacyEncryptionStrategy : EncryptionStrategy {
     }
     
     func storeServerPrivateKey(privateKeyData: Data, tag: String) throws -> Bool {
-        _ = removeKey(tag: tag, flag: "S")
+        if try isKeyCreated(tag: tag, flag: "S") == true {
+            _ = removeKey(tag: tag, flag: "S")
+        }
         
         let secAttrApplicationTag = (tag + "_ss").data(using: .utf8)!
         
@@ -133,7 +135,9 @@ class LegacyEncryptionStrategy : EncryptionStrategy {
     }
     
      func generateKeyPair(accessControlParam: AccessControlParam) throws -> SecKey {
-         _ = removeKey(tag: accessControlParam.tag, flag: "C") 
+        if try isKeyCreated(tag: accessControlParam.tag, flag: "C") == true{
+            _ = removeKey(tag: accessControlParam.tag, flag: "C")   
+         }
          let secAttrApplicationTag: Data? = accessControlParam.tag.data(using: .utf8)
 
          if secAttrApplicationTag == nil {
