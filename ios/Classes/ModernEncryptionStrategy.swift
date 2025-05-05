@@ -33,17 +33,51 @@ class ModernEncryptionStrategy : EncryptionStrategy {
     }
 
     func storeCertificate(certificateData: Data, tag: String) throws -> Bool {
-        _ = removeCertificate(tag: tag)
-        let certData = String(data: certificateData, encoding: .utf8)!
         let secAttrApplicationTag = (tag + "_cert").data(using: .utf8)!
-
-        let query: [String: Any] = [
+ 
+        // First check if certificate already exists
+        let checkQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: secAttrApplicationTag,
-            kSecValueData as String: certData
+            kSecReturnData as String: false,
+            kSecMatchLimit as String: kSecMatchLimitOne
         ]
-        let status = SecItemAdd(query as CFDictionary, nil)
-        return status == errSecSuccess
+        
+        var status = SecItemCopyMatching(checkQuery as CFDictionary, nil)
+        
+        if status == errSecSuccess {
+            // Certificate exists, update it
+            let updateQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrAccount as String: secAttrApplicationTag
+            ]
+            
+            let updateAttributes: [String: Any] = [
+                kSecValueData as String: certificateData
+            ]
+            
+            status = SecItemUpdate(updateQuery as CFDictionary, updateAttributes as CFDictionary)
+        } else if status == errSecItemNotFound {
+            // Certificate does not exist, add it
+            let addQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrAccount as String: secAttrApplicationTag,
+                kSecValueData as String: certificateData
+            ]
+            
+            status = SecItemAdd(addQuery as CFDictionary, nil)
+        }
+        
+        if status != errSecSuccess {
+            if let errorMessage = SecCopyErrorMessageString(status, nil) {
+                print("Certificate operation failed with error: \(errorMessage)")
+            } else {
+                print("Certificate operation failed with unknown error. Status code: \(status)")
+            }
+            return false
+        }
+        
+        return true
     }
     
     func getCertificate(tag: String) throws -> String? {
@@ -77,10 +111,14 @@ class ModernEncryptionStrategy : EncryptionStrategy {
     }
     
     func storeServerPrivateKey(privateKeyData: Data, tag: String) throws -> Bool {
-        if try isKeyCreated(tag: tag, flag: "S") == true {
-            _ = removeKey(tag: tag, flag: "S")
-        }
         let secAttrApplicationTag = (tag + "_ss").data(using: .utf8)!
+        
+        // Process the PEM private key
+        guard let pemString = String(data: privateKeyData, encoding: .utf8),
+              let base64Encoded = pemString.split(separator: "\n").dropFirst().dropLast().joined().data(using: .utf8),
+              let derData = Data(base64Encoded: base64Encoded) else {
+            throw CustomError.runtimeError("Invalid private key data format")
+        }
         
         // Create a dictionary for importing the private key
         let keyParams: [String: Any] = [
@@ -89,38 +127,56 @@ class ModernEncryptionStrategy : EncryptionStrategy {
             kSecAttrIsPermanent as String: true
         ]
         
-        if let pemString = String(data: privateKeyData, encoding: .utf8),
-           let base64Encoded = pemString.split(separator: "\n").dropFirst().dropLast().joined().data(using: .utf8),
-           let derData = Data(base64Encoded: base64Encoded) {
-            var error: Unmanaged<CFError>?
-            guard let secKey = SecKeyCreateWithData(derData as CFData, keyParams as CFDictionary, &error) else {
-                if let error = error {
-                    throw error.takeRetainedValue() as Error
-                }
-                throw CustomError.runtimeError("Failed to create the private key")
+        // Create the SecKey object from the private key data
+        var error: Unmanaged<CFError>?
+        guard let secKey = SecKeyCreateWithData(derData as CFData, keyParams as CFDictionary, &error) else {
+            if let error = error {
+                throw error.takeRetainedValue() as Error
             }
-            
-            // Create a dictionary for adding the private key to the Keychain
-            let addQuery: [String: Any] = [
-                kSecClass as String: kSecClassKey,
-                kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
-                kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
-                kSecAttrApplicationTag as String: secAttrApplicationTag,
-                kSecValueRef as String: secKey,
-                kSecAttrIsPermanent as String: true
-            ]
-            
-            let status = SecItemAdd(addQuery as CFDictionary, nil)
-            guard status == errSecSuccess else {
-                if status == errSecDuplicateItem {
-                    throw CustomError.runtimeError("Private key already exists")
-                }
-                throw NSError(domain: NSOSStatusErrorDomain, code: Int(status), userInfo: [NSLocalizedDescriptionKey: SecCopyErrorMessageString(status, nil) ?? "Undefined error"])
+            throw CustomError.runtimeError("Failed to create the private key")
+        }
+        
+        // First check if key already exists using SecItemCopyMatching
+        let checkQuery: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
+            kSecAttrApplicationTag as String: secAttrApplicationTag,
+            kSecReturnRef as String: false,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        
+        var status = SecItemCopyMatching(checkQuery as CFDictionary, nil)
+        
+        if status == errSecSuccess {
+            // Key exists, remove it before adding the new one
+            // For SecKey objects this is the most reliable approach across all iOS versions
+            if !removeKey(tag: tag, flag: "S") {
+                throw CustomError.runtimeError("Failed to update existing private key")
             }
         }
         
-        // Verify if the key was successfully stored
-        return try isKeyCreated(tag: tag, flag: "S") ?? false
+        // Add the new key (whether it existed before or not)
+        let addQuery: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
+            kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
+            kSecAttrApplicationTag as String: secAttrApplicationTag,
+            kSecValueRef as String: secKey,
+            kSecAttrIsPermanent as String: true
+        ]
+        
+        status = SecItemAdd(addQuery as CFDictionary, nil)
+        
+        if status != errSecSuccess {
+            if let errorMessage = SecCopyErrorMessageString(status, nil) {
+                print("Private key operation failed with error: \(errorMessage)")
+            } else {
+                print("Private key operation failed with unknown error. Status code: \(status)")
+            }
+            return false
+        }
+        
+        return true
     }
 
     func generateKeyPair(accessControlParam: AccessControlParam) throws -> SecKey  {
@@ -207,7 +263,6 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         if status == errSecSuccess || status == errSecItemNotFound {
             return true
         }
-        
 
         if let message = SecCopyErrorMessageString(status, nil) {
             print("removeKey failed with error: \(message)")
@@ -249,13 +304,8 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         do{
             let result =  try getSecKey(tag: tag, flag: flag)
             return result != nil ? true : false
-        } catch let error as NSError {
-            if error.code == errSecItemNotFound {
-                return false
-            }
-            print("An error occurred: \(error.localizedDescription)")
-            print("Error details: \(error)")
-            throw error
+        } catch {
+            return false
         }
     }
     
