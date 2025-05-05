@@ -66,6 +66,7 @@ class ModernEncryptionStrategy(private val context: Context) : EncryptionStrateg
         certificateData: ByteArray
     ): Boolean {
         return try {
+            removeCertificate(tag)
             val pemString = String(certificateData)
             editor.putString(tag + "_cert", pemString).apply()
 
@@ -95,6 +96,7 @@ class ModernEncryptionStrategy(private val context: Context) : EncryptionStrateg
 
     override fun storeServerPrivateKey(tag: String, privateKeyData: ByteArray): Boolean {
         return try {
+            removeKey(tag, "S")
             val pemString = String(privateKeyData)
 
             val base64Encoded = pemString
@@ -140,6 +142,7 @@ class ModernEncryptionStrategy(private val context: Context) : EncryptionStrateg
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun generateKeyPair(accessControlParam: AccessControlParam): KeyPair {
+        removeKey(accessControlParam.tag, "C")
         val keyPairGenerator = KeyPairGenerator.getInstance("EC", "AndroidKeyStore")
         val parameterSpec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             KeyGenParameterSpec.Builder(

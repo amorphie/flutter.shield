@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_shield/CanonicalJsonSerializer.dart';
 import 'package:flutter_shield/secure_enclave.dart';
 import 'package:flutter_shield_example/DeviceInfoProvider.dart';
+import 'package:flutter_shield_example/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
@@ -52,7 +53,7 @@ class _SignatureVerifyState extends State<SignatureVerify> {
       setState(() {});
 
       var url = Uri.parse(
-          'http://localhost:5111/jws/verify');
+          '${AppConstants.baseUrl}/jws/verify');
       final dataObject = json.decode(plainText.text);
       try {
         final dataRaw = CanonicalJsonSerializer.hashData(plainText.text);

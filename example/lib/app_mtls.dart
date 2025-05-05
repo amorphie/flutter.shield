@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_shield/secure_enclave.dart';
 import 'package:flutter_shield_example/DeviceInfoProvider.dart';
+import 'package:flutter_shield_example/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart';
@@ -30,55 +31,56 @@ class _AppMtlsState extends State<AppMtls> {
   Widget build(BuildContext context) {
     final deviceInfoProvider = Provider.of<DeviceInfoProvider>(context);
 
-    List<int> convertDerToPem(Uint8List derBytes) {
-      // DER formatındaki byte verisini Base64 olarak encode etme
-      String base64Encoded = base64Encode(derBytes);
+    Future<String?> sign(String input) async {
+      ResultModel response = await _secureEnclavePlugin.sign(
+          tag: deviceInfoProvider.clientKey,
+          message: utf8.encode(input)
+          );
 
-      // PEM formatındaki veriyi satırlara ayırma (64 karakter uzunluğunda satırlar)
-      final chunkedBase64 = base64Encoded.replaceAllMapped(
-        RegExp(r'.{1,64}'), 
-        (match) => '${match.group(0)}\n'
-      );
-
-      // PEM başlık ve bitiş satırlarını ekleme
-      String pemString = '-----BEGIN RSA PRIVATE KEY-----\n$chunkedBase64-----END RSA PRIVATE KEY-----\n';
-
-      // PEM string'ini List<int> formatına çevirme
-      return utf8.encode(pemString);
+      if (response.error == null) {
+       return response.value.toString();
+      }
+      return null;
     }
 
     Future mtlsCall() async {
       final certificateResult = await _secureEnclavePlugin.getCertificate(tag: deviceInfoProvider.clientKey);
-
       final privateKeyResult = await _secureEnclavePlugin.getServerKey(tag: deviceInfoProvider.clientKey);
       final privateKeyPem = privateKeyResult.value!;
-
       final certificatePem = certificateResult.value!;
+
+      print('certificatePem: $certificatePem');
+      print('privateKeyPem: $privateKeyPem');
 
       SecurityContext securityContext = SecurityContext(withTrustedRoots: false)
         ..useCertificateChainBytes(utf8.encode(certificatePem))
         ..usePrivateKeyBytes(utf8.encode(privateKeyPem));
         
       HttpClient client = HttpClient(context: securityContext);
-      final tokenId = uuid.v4();
       var url = Uri.parse(
-          'https://test-mtls-pubagw6.burgan.com.tr/dev/ebanking/shield/transactions');
-
+          '${AppConstants.dmzBaseUrl}/ebanking/bffapi/dashboard/addorupdatecustomercard');
+      
+      HttpClientRequest request = await client.putUrl(url);
       try {
-        HttpClientRequest request = await client.getUrl(url);
-
+        final requestId = uuid.v4();
+        print('requestId: $requestId');
         request.headers.set("Content-Type", "application/json");
         request.headers.set("user_reference", deviceInfoProvider.tag);
-        request.headers.set("X-DeviceId", deviceInfoProvider.deviceId);
-        request.headers.set("X-Token", tokenId);
-        request.headers.set("X-Request-Id", uuid.v4());
-        request.headers.set("User",uuid.v4());
-        request.headers.set("Behalf-Of-User", uuid.v4());
+        request.headers.set("X-Device-Id", deviceInfoProvider.deviceId);
+        request.headers.set("X-Installation-Id", deviceInfoProvider.deviceId);
+        request.headers.set("X-Request-Id", requestId);
 
-        HttpClientResponse creationResponse = await request.close();
+        // final signData = await sign(requestTest.text);
+        // if (signData != null) {
+        //    request.headers.set("X-Jws-Signature", signData);
+        // }
 
-        if (creationResponse.statusCode == 200) {        
-            responseText.text = await creationResponse.transform(utf8.decoder).join();
+        request.add(utf8.encode(jsonEncode(requestTest.text)));
+
+        HttpClientResponse response = await request.close();
+
+        if (response.statusCode == 200) {        
+            responseText.text = await response.transform(utf8.decoder).join();
             setState(() {});
 
             ScaffoldMessenger.of(context)

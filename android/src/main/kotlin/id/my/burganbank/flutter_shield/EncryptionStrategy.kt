@@ -12,7 +12,6 @@ interface EncryptionStrategy {
     @Throws(Exception::class)
     fun getCertificate(tag: String): String?
 
-    @Throws(Exception::class)
     fun removeCertificate(tag: String): Boolean
     
     @Throws(Exception::class)
@@ -24,7 +23,6 @@ interface EncryptionStrategy {
     @Throws(Exception::class)
     fun generateKeyPair(accessControlParam: AccessControlParam): KeyPair
 
-    @Throws(Exception::class)
     fun removeKey(tag: String, flag: String): Boolean
 
     @Throws(Exception::class)
