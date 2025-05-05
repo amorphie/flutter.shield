@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_shield/secure_enclave.dart';
 import 'package:flutter_shield_example/DeviceInfoProvider.dart';
+import 'package:flutter_shield_example/constants.dart';
 import 'package:flutter_shield_example/dashboard.dart';
 import 'package:flutter_shield_example/utils.dart';
 import 'package:provider/provider.dart';
@@ -65,20 +66,22 @@ class _AppGenerateCertState extends State<AppGenerateCert> {
 
   Future _generateServerCert(String deviceId, String publicKey) async {
     try {
-      final bool status = (await _secureEnclavePlugin
-                  .isKeyCreated("$deviceId${tagController.text}", "S"))
-              .value ??
-          false;
-      if (status == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Server Key already exists!')),
-        );
-        return;
-      }
+      // final bool status = (await _secureEnclavePlugin
+      //             .isKeyCreated("$deviceId${tagController.text}", "S"))
+      //         .value ??
+      //     false;
+      // if (status == true) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(content: Text('Server Key already exists!')),
+      //   );
+      //   return;
+      // }
+
+      final hasCert = await _secureEnclavePlugin.getCertificate(tag: "$deviceId${tagController.text}");
 
   
       var url = Uri.parse(
-          'http://localhost:5111/client-certificate/save');
+          '${AppConstants.baseUrl}/client-certificate/save');
       final publicKeyBase64 = base64Encode(utf8.encode(publicKey!));
       var clientCertData = {
         "publicKey": publicKeyBase64,
@@ -98,7 +101,7 @@ class _AppGenerateCertState extends State<AppGenerateCert> {
 
       if (clientSaveResponse.statusCode == 200) {
         url = Uri.parse(
-            'http://localhost:5111/certificate/create');
+            '${AppConstants.baseUrl}/certificate/create');
         var serverCertData = {
           "identity": {
             "deviceId": deviceId,

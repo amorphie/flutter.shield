@@ -33,6 +33,7 @@ class ModernEncryptionStrategy : EncryptionStrategy {
     }
 
     func storeCertificate(certificateData: Data, tag: String) throws -> Bool {
+        _ = removeCertificate(tag: tag)
         let certData = String(data: certificateData, encoding: .utf8)!
         let secAttrApplicationTag = (tag + "_cert").data(using: .utf8)!
 
@@ -64,7 +65,7 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         return String(data: certData, encoding: .utf8)
     }
     
-    func removeCertificate(tag: String) throws -> Bool {
+    func removeCertificate(tag: String) -> Bool {
         let secAttrApplicationTag = (tag + "_cert").data(using: .utf8)!
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -72,10 +73,11 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         ]
         
         let status = SecItemDelete(query as CFDictionary)
-        return status == errSecSuccess
+        return status == errSecSuccess || status == errSecItemNotFound
     }
     
     func storeServerPrivateKey(privateKeyData: Data, tag: String) throws -> Bool {
+        _ = removeKey(tag: tag, flag: "S")
         let secAttrApplicationTag = (tag + "_ss").data(using: .utf8)!
         
         // Create a dictionary for importing the private key
@@ -122,7 +124,8 @@ class ModernEncryptionStrategy : EncryptionStrategy {
     func generateKeyPair(accessControlParam: AccessControlParam) throws -> SecKey  {
         // options
         //let secAccessControlCreateFlags: SecAccessControlCreateFlags = accessControlParam.option
-        let secAttrApplicationTag: Data? = accessControlParam.tag.data(using: .utf8)
+        _ = removeKey(tag: accessControlParam.tag, flag: "C") 
+        let secAttrApplicationTag: Data? = accessControlParam.tag.data(using: .utf8)!
         var accessError: Unmanaged<CFError>?
         let secAttrAccessControl =
         SecAccessControlCreateWithFlags(
@@ -183,7 +186,7 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         }
     }
     
-    func removeKey(tag: String, flag: String) throws -> Bool {
+    func removeKey(tag: String, flag: String) -> Bool {
         var tagValue = tag
         if flag == "S" {
             tagValue += "_ss"
@@ -196,15 +199,16 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         
         let status = SecItemDelete(query as CFDictionary)
         
-        guard status == errSecSuccess else {
-            if status == errSecNotAvailable || status == errSecItemNotFound {
-                return false
-            } else {
-                throw  NSError(domain: NSOSStatusErrorDomain, code: Int(status), userInfo: [NSLocalizedDescriptionKey: SecCopyErrorMessageString(status,nil) ?? "Undefined error"])
-            }
+        if status == errSecSuccess || status == errSecItemNotFound {
+            return true
         }
         
-        return true
+
+        if let message = SecCopyErrorMessageString(status, nil) {
+            print("removeKey failed with error: \(message)")
+        }
+
+        return false
     }
     
     internal func getSecKey(tag: String, flag: String = "C") throws -> SecKey?  {

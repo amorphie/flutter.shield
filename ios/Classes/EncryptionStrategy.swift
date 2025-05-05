@@ -8,7 +8,7 @@ protocol EncryptionStrategy {
 
     func getCertificate(tag: String) throws -> String?
 
-    func removeCertificate(tag: String) throws -> Bool
+    func removeCertificate(tag: String) -> Bool
     
     func storeServerPrivateKey(privateKeyData: Data, tag: String) throws -> Bool
 
@@ -16,7 +16,7 @@ protocol EncryptionStrategy {
     
     func generateKeyPair(accessControlParam: AccessControlParam) throws -> SecKey
     
-    func removeKey(tag: String, flag: String) throws -> Bool
+    func removeKey(tag: String, flag: String) -> Bool
     
     func isKeyCreated(tag: String, flag: String) throws -> Bool?
     
