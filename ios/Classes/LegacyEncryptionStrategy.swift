@@ -226,7 +226,10 @@ class LegacyEncryptionStrategy : EncryptionStrategy {
         do{
             let result =  try getSecKey(tag: tag, flag: flag)
             return result != nil ? true : false
-        } catch let error{
+       } catch let error as NSError {
+            if error.code == errSecItemNotFound {
+                return false
+            }
             print("An error occurred: \(error.localizedDescription)")
             print("Error details: \(error)")
             throw error
