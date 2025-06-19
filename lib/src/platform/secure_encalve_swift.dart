@@ -1,12 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_shield/src/models/secure_enclave_log_data.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import '../../secure_enclave_base.dart';
 import '../models/access_control_model.dart';
 import '../models/result_model.dart';
-
-
 
 abstract class SecureEnclavePlatform extends PlatformInterface implements SecureEnclaveBase {
   /// Constructs a SecureEnclavePlatform.
@@ -30,22 +28,20 @@ abstract class SecureEnclavePlatform extends PlatformInterface implements Secure
   }
 }
 
-
 class SecureEnclaveSwift extends SecureEnclavePlatform {
   /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel = const MethodChannel('flutter_shield');
 
-   /// Store sever private key
   @override
-  Future<ResultModel<bool>> storeServerPrivateKey(
-      { required String tag, required Uint8List privateKeyData}) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
+  Future<void> Function(SecureEnclaveLogData logData)? log;
+
+  /// Store sever private key
+  @override
+  Future<ResultModel<bool>> storeServerPrivateKey({required String tag, required Uint8List privateKeyData}) async {
+    final result = await sendMessage(
       'storeServerPrivateKey',
-      {
-        "tag": tag,
-        "privateKeyData": privateKeyData
-      },
+      {"tag": tag, "privateKeyData": privateKeyData},
     );
 
     return ResultModel.fromMap(
@@ -57,14 +53,8 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
   }
 
   @override
-  Future<ResultModel<String?>> getServerKey(
-      { required String tag }) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
-      'getServerKey',
-      {
-        "tag": tag
-      }
-    );
+  Future<ResultModel<String?>> getServerKey({required String tag}) async {
+    final result = await sendMessage('getServerKey', {"tag": tag});
 
     return ResultModel.fromMap(
       map: Map<String, dynamic>.from(result),
@@ -76,9 +66,8 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
 
   /// Generetes a new private/public key pair
   @override
-  Future<ResultModel<bool>> generateKeyPair(
-      {required AccessControlModel accessControl}) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
+  Future<ResultModel<bool>> generateKeyPair({required AccessControlModel accessControl}) async {
+    final result = await sendMessage(
       'generateKeyPair',
       {
         "accessControl": accessControl.toJson(),
@@ -96,13 +85,7 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
   /// remove key pair
   @override
   Future<ResultModel<bool>> removeKey(String tag, String flag) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
-      'removeKey',
-      {
-        "tag": tag,
-        "flag": flag
-      }
-    );
+    final result = await sendMessage('removeKey', {"tag": tag, "flag": flag});
 
     return ResultModel.fromMap(
       map: Map<String, dynamic>.from(result),
@@ -117,12 +100,7 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
   /// to your device
   @override
   Future<ResultModel<String?>> getPublicKey(String tag) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
-      'getPublicKey',
-      {
-        "tag": tag
-      }
-    );
+    final result = await sendMessage('getPublicKey', {"tag": tag});
 
     return ResultModel.fromMap(
       map: Map<String, dynamic>.from(result),
@@ -134,14 +112,10 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
 
   /// encryption with secure enclave key pair
   @override
-  Future<ResultModel<Uint8List?>> encrypt(
-      { required String tag, required String message}) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
+  Future<ResultModel<Uint8List?>> encrypt({required String tag, required String message}) async {
+    final result = await sendMessage(
       'encrypt',
-      {
-        "tag": tag,
-        "message": message
-      },
+      {"tag": tag, "message": message},
     );
 
     return ResultModel.fromMap(
@@ -154,14 +128,10 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
 
   /// decryption with secure enclave key pair
   @override
-  Future<ResultModel<String?>> decrypt(
-      { required String tag, required Uint8List message}) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
+  Future<ResultModel<String?>> decrypt({required String tag, required Uint8List message}) async {
+    final result = await sendMessage(
       'decrypt',
-      {
-        "tag": tag,
-        "message": message
-      },
+      {"tag": tag, "message": message},
     );
 
     return ResultModel.fromMap(
@@ -175,13 +145,7 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
   /// check status is tag available or not
   @override
   Future<ResultModel<bool?>> isKeyCreated(String tag, String flag) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
-      'isKeyCreated',
-      {
-        "tag": tag,
-        "flag": flag
-      }
-    );
+    final result = await sendMessage('isKeyCreated', {"tag": tag, "flag": flag});
 
     return ResultModel.fromMap(
       map: Map<String, dynamic>.from(result),
@@ -193,14 +157,10 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
 
   /// generate signature from data
   @override
-  Future<ResultModel<String?>> sign(
-      { required String tag, required Uint8List message}) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
+  Future<ResultModel<String?>> sign({required String tag, required Uint8List message}) async {
+    final result = await sendMessage(
       'sign',
-      {
-        "tag": tag,
-        "message": message
-      },
+      {"tag": tag, "message": message},
     );
 
     return ResultModel.fromMap(
@@ -213,17 +173,10 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
 
   /// verify signature
   @override
-  Future<ResultModel<bool?>> verify(
-      {required String tag,
-      required String plainText,
-      required String signature}) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
+  Future<ResultModel<bool?>> verify({required String tag, required String plainText, required String signature}) async {
+    final result = await sendMessage(
       'verify',
-      {
-        "tag": tag,
-        "plainText": plainText,
-        "signature": signature
-      },
+      {"tag": tag, "plainText": plainText, "signature": signature},
     );
 
     return ResultModel.fromMap(
@@ -233,15 +186,10 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
       },
     );
   }
-  
+
   @override
   Future<ResultModel<String?>> getCertificate({required String tag}) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
-      'getCertificate',
-      {
-        "tag": tag
-      }
-    );
+    final result = await sendMessage('getCertificate', {"tag": tag});
 
     return ResultModel.fromMap(
       map: Map<String, dynamic>.from(result),
@@ -250,15 +198,10 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
       },
     );
   }
-  
+
   @override
   Future<ResultModel<bool>> removeCertificate({required String tag}) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
-      'removeCertificate',
-      {
-        "tag": tag
-      }
-    );
+    final result = await sendMessage('removeCertificate', {"tag": tag});
 
     return ResultModel.fromMap(
       map: Map<String, dynamic>.from(result),
@@ -267,16 +210,10 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
       },
     );
   }
-  
+
   @override
   Future<ResultModel<bool>> storeCertificate({required String tag, required Uint8List certificateData}) async {
-    final result = await methodChannel.invokeMethod<dynamic>(
-      'storeCertificate',
-      {
-        "tag": tag,
-        "certificateData": certificateData
-      }
-    );
+    final result = await sendMessage('storeCertificate', {"tag": tag, "certificateData": certificateData});
 
     return ResultModel.fromMap(
       map: Map<String, dynamic>.from(result),
@@ -284,5 +221,21 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
         return rawData as bool;
       },
     );
+  }
+
+  Future<dynamic> sendMessage(String method, dynamic arguments) async {
+    final result = await methodChannel.invokeMethod<dynamic>(method, arguments);
+
+    if (log != null) {
+      await log!(
+        SecureEnclaveLogData(
+          method: method,
+          args: arguments,
+          result: result,
+        ),
+      );
+    }
+
+    return result;
   }
 }
