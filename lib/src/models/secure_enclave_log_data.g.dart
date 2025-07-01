@@ -13,4 +13,6 @@ Map<String, dynamic> _$SecureEnclaveLogDataToJson(
       'method': instance.method,
       'args': instance.args,
       'result': instance.result,
+      'tag': instance.tag,
+      'error': instance.error,
     };
