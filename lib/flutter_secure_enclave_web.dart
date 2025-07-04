@@ -8,6 +8,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_shield/src/models/secure_enclave_log_data.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:pointycastle/asn1/asn1_parser.dart';
 import 'package:pointycastle/asn1/primitives/asn1_bit_string.dart';
@@ -22,17 +23,21 @@ import 'package:pointycastle/export.dart';
 
 /// A web implementation of the FlutterSecureEnclavePlatform of the FlutterSecureEnclave plugin.
 class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
- final FlutterSecureStorage _storage =  FlutterSecureStorage();
- static const String publicKeyStorageKey = 'brgnPubKey_';
- static const String privateKeyStorageKey = 'brgnPvtKey_';
- static void registerWith(Registrar registrar) {
+  @override
+  Future<void> Function(SecureEnclaveLogData logData)? log;
+
+  final FlutterSecureStorage _storage = FlutterSecureStorage();
+  static const String publicKeyStorageKey = 'brgnPubKey_';
+  static const String privateKeyStorageKey = 'brgnPvtKey_';
+  static void registerWith(Registrar registrar) {
     SecureEnclavePlatform.instance = FlutterSecureEnclaveWeb();
   }
 
   @override
-  Future<ResultModel<bool>> storeServerPrivateKey({required String tag, required Uint8List privateKeyData, dynamic context}) async {
+  Future<ResultModel<bool>> storeServerPrivateKey(
+      {required String tag, required Uint8List privateKeyData, dynamic context}) async {
     var privateKey = await _storage.containsKey(key: "${privateKeyStorageKey}_${tag}_ss");
-    if(privateKey){
+    if (privateKey) {
       await removeKey("${privateKeyStorageKey}_${tag}_ss", "S");
     }
 
@@ -50,7 +55,7 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
   Future<ResultModel<String?>> decrypt({required String tag, required Uint8List message}) async {
     final privateKey = await getPrivateKey(tag);
     final decryptor = OAEPEncoding(RSAEngine())..init(false, PrivateKeyParameter<RSAPrivateKey>(privateKey));
-    final result =  utf8.decode(_processInBlocks(decryptor, message));
+    final result = utf8.decode(_processInBlocks(decryptor, message));
 
     return ResultModel.fromMap(
       map: Map<String, dynamic>.from({"data": result}),
@@ -103,13 +108,13 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
       decoder: (rawData) {
         return rawData as bool;
       },
-    ); 
+    );
   }
 
   @override
   Future<ResultModel<String?>> getPublicKey(String tag) async {
-     var publicKey = await getPublicKeyInernal(tag);
-     return ResultModel.fromMap(
+    var publicKey = await getPublicKeyInernal(tag);
+    return ResultModel.fromMap(
       map: Map<String, dynamic>.from({"data": encodePublicKeyToPem(publicKey)}),
       decoder: (rawData) {
         return rawData as String?;
@@ -123,8 +128,8 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
   }
 
   Future<RSAPublicKey> getPublicKeyInernal(String tag) async {
-      var publicKeyPem = await _storage.read(key: publicKeyStorageKey + tag);
-      return decodePublicKeyFromPem(publicKeyPem!);
+    var publicKeyPem = await _storage.read(key: publicKeyStorageKey + tag);
+    return decodePublicKeyFromPem(publicKeyPem!);
   }
 
   @override
@@ -143,7 +148,6 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
     } catch (e) {
       rethrow;
     }
-    
   }
 
   @override
@@ -181,7 +185,8 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
 
     bool result = false;
     try {
-      result = verifier.verifySignature(Uint8List.fromList(utf8.encode(plainText)), RSASignature(base64Decode(signature)));
+      result =
+          verifier.verifySignature(Uint8List.fromList(utf8.encode(plainText)), RSASignature(base64Decode(signature)));
     } catch (e) {
       result = false;
     }
@@ -240,7 +245,7 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
   RSAPublicKey decodePublicKeyFromPem(String pem) {
     var bytes = _pemDecode(pem);
     var asn1Parser = ASN1Parser(bytes);
-    
+
     var topLevelSeq = asn1Parser.nextObject() as ASN1Sequence;
     var publicKeyBitString = topLevelSeq.elements![1] as ASN1BitString;
     var publicKeyAsn = ASN1Parser(Uint8List.fromList(publicKeyBitString.stringValues!));
@@ -263,12 +268,7 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
     var p = topLevelSeq.elements![4] as ASN1Integer;
     var q = topLevelSeq.elements![5] as ASN1Integer;
 
-    return RSAPrivateKey(
-      modulus.integer!,
-      privateExponent.integer!,
-      p.integer!,
-      q.integer!
-    );
+    return RSAPrivateKey(modulus.integer!, privateExponent.integer!, p.integer!, q.integer!);
   }
 
   Uint8List _pemDecode(String pem) {
@@ -276,7 +276,6 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
     var endsWith = pem.indexOf('-----END');
     var base64String = pem.substring(startsWith, endsWith).split('\n').sublist(1).join();
     return base64.decode(base64String);
-     
   }
 
   String _pemEncode(Uint8List bytes, String label) {
@@ -306,25 +305,25 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
 
     return output;
   }
-  
+
   @override
   Future<ResultModel<String?>> getCertificate({required String tag}) {
     // TODO: implement getCertificate
     throw UnimplementedError();
   }
-  
+
   @override
   Future<ResultModel<bool>> removeCertificate({required String tag}) {
     // TODO: implement removeCertificate
     throw UnimplementedError();
   }
-  
+
   @override
   Future<ResultModel<bool>> storeCertificate({required String tag, required Uint8List certificateData}) {
     // TODO: implement storeCertificate
     throw UnimplementedError();
   }
-  
+
   @override
   Future<ResultModel<String?>> getServerKey({required String tag}) {
     // TODO: implement getServerKey
