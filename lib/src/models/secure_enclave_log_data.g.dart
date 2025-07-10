@@ -6,13 +6,11 @@ part of 'secure_enclave_log_data.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-Map<String, dynamic> _$SecureEnclaveLogDataToJson(
-        SecureEnclaveLogData instance) =>
-    <String, dynamic>{
-      'date': instance.date.toIso8601String(),
+Map<String, dynamic> _$SecureEnclaveLogDataToJson(SecureEnclaveLogData instance) => <String, dynamic>{
       'method': instance.method,
+      'tag': instance.tag,
       'args': instance.args,
       'result': instance.result,
-      'tag': instance.tag,
-      'error': instance.error,
+      'date': instance.date.toIso8601String(),
+      'error': instance.error?.toMap(),
     };
