@@ -71,36 +71,36 @@ class _SignatureVerifyState extends State<SignatureVerify> {
               .showSnackBar(SnackBar(content: Text('ERROR. Verification failed.')));
         }
 
-        final verifyResponse = await http.post(url,
-          headers: {
-            'Content-Type': 'application/json',
-            'user_reference': deviceInfoProvider.tag,
-            'x_device_id': deviceInfoProvider.deviceId,
-            'x_installation_id': deviceInfoProvider.deviceId,
-            'x_request_id': uuid.v4(),
-            'x_jws_signature': signatureText.text
-          },
-          body: json.encode(dataObject)); 
-        final responseBody = jsonDecode(verifyResponse.body);
-        if (verifyResponse.statusCode == 200) {
-            try {
-              verifyText.text = "true";
-              setState(() {});
+        // final verifyResponse = await http.post(url,
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //     'user_reference': deviceInfoProvider.tag,
+        //     'x_device_id': deviceInfoProvider.deviceId,
+        //     'x_installation_id': deviceInfoProvider.deviceId,
+        //     'x_request_id': uuid.v4(),
+        //     'x_jws_signature': signatureText.text
+        //   },
+        //   body: json.encode(dataObject)); 
+        // final responseBody = jsonDecode(verifyResponse.body);
+        // if (verifyResponse.statusCode == 200) {
+        //     try {
+        //       verifyText.text = "true";
+        //       setState(() {});
 
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text('Verify successful.')));
-            } catch (e) {
-              verifyText.text = "false";
-              setState(() {});
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text('Verify failed.')));
-            }
-        } else {
-          verifyText.text = "false";
-              setState(() {});
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('ERROR. ' + responseBody["error"]["message"].toString())));
-        }
+        //       ScaffoldMessenger.of(context)
+        //           .showSnackBar(SnackBar(content: Text('Verify successful.')));
+        //     } catch (e) {
+        //       verifyText.text = "false";
+        //       setState(() {});
+        //       ScaffoldMessenger.of(context)
+        //           .showSnackBar(SnackBar(content: Text('Verify failed.')));
+        //     }
+        // } else {
+        //   verifyText.text = "false";
+        //       setState(() {});
+        //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        //       content: Text('ERROR. ' + responseBody["error"]["message"].toString())));
+        // }
       } catch (e) {
         log(e.toString());
          ScaffoldMessenger.of(context)
