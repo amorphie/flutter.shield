@@ -7,4 +7,11 @@ class ErrorModel {
   factory ErrorModel.fromMap(Map<String, dynamic> map) {
     return ErrorModel(map["code"], map["desc"]);
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      "code": code,
+      "desc": desc,
+    };
+  }
 }

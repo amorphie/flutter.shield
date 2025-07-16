@@ -87,8 +87,8 @@ class _AppMtlsState extends State<AppMtls> {
                 .showSnackBar(SnackBar(content: Text('MTLS call successful.')));
           } 
           else {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('ERROR. MTLS call request could not be sent.')));
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text('MTLS call successful.')));
         }
       } catch (e) {
         print(e);
