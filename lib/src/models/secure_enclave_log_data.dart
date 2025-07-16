@@ -29,6 +29,10 @@ class SecureEnclaveLogData {
 
   @override
   String toString() {
-    return 'SecureEnclave(${jsonEncode(toJson())}))';
+    try {
+      return 'SecureEnclave(${jsonEncode(toJson())})';
+    } catch (e) {
+      return 'SecureEnclaveLogData(date: $date, method: $method, args: $args, result: $result, tag: $tag, error: $error)';
+    }
   }
 }

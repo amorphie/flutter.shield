@@ -415,7 +415,7 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
       await log!(
         SecureEnclaveLogData(
           method: 'storeCertificate',
-          args: {"tag": tag, "certificateData": certificateData.length > 5 ? certificateData.getRange(0, 5) : []},
+          args: {"tag": tag, "certificateData": "MASKED_DATA!"},
           result: resultModel.value,
           tag: tag,
           error: resultModel.error,

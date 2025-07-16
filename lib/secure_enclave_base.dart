@@ -6,7 +6,11 @@ import 'src/models/access_control_model.dart';
 import 'src/models/result_model.dart';
 
 abstract class SecureEnclaveBase {
-  /// Dışarıdan atanabilir log fonksiyonu
+  /// Optional callback function for logging secure enclave operations.
+  ///
+  /// When assigned, this function will be called with detailed log data
+  /// including method name, arguments, results, and any errors that occur
+  /// during secure enclave operations.
   Future<void> Function(SecureEnclaveLogData logData)? log;
 
   /// Stores the certificate securely with a given tag.
