@@ -205,30 +205,29 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         }
         
         if let secAttrApplicationTag = secAttrApplicationTag {
-            if TARGET_OS_SIMULATOR != 0 {
-                // target is current running in the simulator
-                parameterTemp = [
-                    kSecAttrKeyType as String           : kSecAttrKeyTypeEC, //kSecAttrKeyTypeEC,
-                    kSecAttrKeySizeInBits as String     : 256,
-                    kSecPrivateKeyAttrs as String       : [
-                        kSecAttrIsPermanent as String       : true,
-                        kSecAttrApplicationTag as String    : secAttrApplicationTag,
-                        kSecAttrAccessControl as String     : secAttrAccessControl!
-                    ]
+#if targetEnvironment(simulator)
+            // target is current running in the simulator
+            parameterTemp = [
+                kSecAttrKeyType as String           : kSecAttrKeyTypeEC, //kSecAttrKeyTypeEC,
+                kSecAttrKeySizeInBits as String     : 256,
+                kSecPrivateKeyAttrs as String       : [
+                    kSecAttrIsPermanent as String       : true,
+                    kSecAttrApplicationTag as String    : secAttrApplicationTag,
+                    kSecAttrAccessControl as String     : secAttrAccessControl!
                 ]
-            } else {
-                parameterTemp = [
-                    kSecAttrKeyType as String           : kSecAttrKeyTypeEC,
-                    kSecAttrKeySizeInBits as String     : 256,
-                    kSecAttrTokenID as String           : kSecAttrTokenIDSecureEnclave,
-                    kSecPrivateKeyAttrs as String : [
-                        kSecAttrIsPermanent as String       : true, 
-                        kSecAttrApplicationTag as String    : secAttrApplicationTag,
-                        kSecAttrAccessControl as String     : secAttrAccessControl!
-                    ]
+            ]
+#else
+            parameterTemp = [
+                kSecAttrKeyType as String           : kSecAttrKeyTypeEC,
+                kSecAttrKeySizeInBits as String     : 256,
+                kSecAttrTokenID as String           : kSecAttrTokenIDSecureEnclave,
+                kSecPrivateKeyAttrs as String : [
+                    kSecAttrIsPermanent as String       : true,
+                    kSecAttrApplicationTag as String    : secAttrApplicationTag,
+                    kSecAttrAccessControl as String     : secAttrAccessControl!
                 ]
-            }
-            
+            ]
+#endif
             // convert ke CFDictinery,0
             parameter = parameterTemp as CFDictionary
             
