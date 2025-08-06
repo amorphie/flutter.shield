@@ -1,5 +1,6 @@
 import Foundation
 import LocalAuthentication
+import CommonCrypto
 
 @available(iOS 11.3, *)
 class ModernEncryptionStrategy : EncryptionStrategy {
@@ -205,7 +206,7 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         }
         
         if let secAttrApplicationTag = secAttrApplicationTag {
-            if TARGET_OS_SIMULATOR != 0 {
+            #if targetEnvironment(simulator)
                 // target is current running in the simulator
                 parameterTemp = [
                     kSecAttrKeyType as String           : kSecAttrKeyTypeEC, //kSecAttrKeyTypeEC,
@@ -216,7 +217,7 @@ class ModernEncryptionStrategy : EncryptionStrategy {
                         kSecAttrAccessControl as String     : secAttrAccessControl!
                     ]
                 ]
-            } else {
+            #else
                 parameterTemp = [
                     kSecAttrKeyType as String           : kSecAttrKeyTypeEC,
                     kSecAttrKeySizeInBits as String     : 256,
@@ -227,7 +228,7 @@ class ModernEncryptionStrategy : EncryptionStrategy {
                         kSecAttrAccessControl as String     : secAttrAccessControl!
                     ]
                 ]
-            }
+            #endif
             
             // convert ke CFDictinery,0
             parameter = parameterTemp as CFDictionary
@@ -408,8 +409,9 @@ class ModernEncryptionStrategy : EncryptionStrategy {
         }
         
         if let plainTextData = plainTextData {
-            let plainText = String(decoding: plainTextData, as: UTF8.self)
-            return plainText
+            // Server returns raw AES key bytes, convert to base64 for consistent handling
+            let base64Key = plainTextData.base64EncodedString()
+            return base64Key
         } else {
             throw CustomError.runtimeError("Can't decrypt data")
         }
@@ -476,5 +478,44 @@ class ModernEncryptionStrategy : EncryptionStrategy {
                 nil
             )
         return verifyRes;
+    }
+    
+    func decryptWithAES(encryptedData: Data, aesKey: Data) throws -> String? {
+        // Server updated: IV is now prepended to encrypted data
+        // Format: [IV (16 bytes)][Encrypted Data (remaining bytes)]
+        
+        guard encryptedData.count > kCCBlockSizeAES128 else {
+            throw CustomError.runtimeError("Encrypted data too short - must contain at least 16 bytes for IV")
+        }
+        
+        // Extract IV from first 16 bytes
+        let iv = encryptedData.prefix(kCCBlockSizeAES128)
+        let actualEncryptedData = encryptedData.dropFirst(kCCBlockSizeAES128)
+        
+        // Create output buffer
+        let bufferSize = actualEncryptedData.count + kCCBlockSizeAES128
+        var buffer = [UInt8](repeating: 0, count: bufferSize)
+        var numBytesDecrypted: size_t = 0
+        
+        let status = CCCrypt(
+            CCOperation(kCCDecrypt),
+            CCAlgorithm(kCCAlgorithmAES),
+            CCOptions(kCCOptionPKCS7Padding),
+            aesKey.withUnsafeBytes { $0.bindMemory(to: UInt8.self).baseAddress },
+            aesKey.count,
+            iv.withUnsafeBytes { $0.bindMemory(to: UInt8.self).baseAddress },
+            actualEncryptedData.withUnsafeBytes { $0.bindMemory(to: UInt8.self).baseAddress },
+            actualEncryptedData.count,
+            &buffer,
+            bufferSize,
+            &numBytesDecrypted
+        )
+        
+        guard status == kCCSuccess else {
+            throw CustomError.runtimeError("AES decryption failed with status: \(status)")
+        }
+        
+        let decryptedData = Data(bytes: buffer, count: numBytesDecrypted)
+        return String(data: decryptedData, encoding: .utf8)
     }
 }

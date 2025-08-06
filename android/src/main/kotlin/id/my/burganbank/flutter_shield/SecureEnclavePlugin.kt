@@ -189,6 +189,17 @@ class SecureEnclavePlugin: FlutterPlugin, MethodCallHandler {
                     result.error("ERROR", e.localizedMessage, null)
                 }
             }
+            "decryptWithAES" -> {
+                try {
+                    val param = call.arguments as? Map<String, Any>
+                    val encryptedData = (param?.get("encryptedData") as? ByteArray) ?: byteArrayOf()
+                    val aesKey = (param?.get("aesKey") as? ByteArray) ?: byteArrayOf()
+                    val decrypted = encryptionStrategy.decryptWithAES(encryptedData, aesKey)
+                    result.success(mapOf("status" to "success", "data" to decrypted))
+                } catch (e: Exception) {
+                    result.error("ERROR", e.localizedMessage, null)
+                }
+            }
             else -> {
                 result.notImplemented()
             }

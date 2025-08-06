@@ -285,4 +285,25 @@ class SecureEnclaveSwift extends SecureEnclavePlatform {
       },
     );
   }
+
+  @override
+  Future<ResultModel<String?>> decryptWithAES({
+    required Uint8List encryptedData,
+    required Uint8List aesKey
+  }) async {
+    final result = await methodChannel.invokeMethod<dynamic>(
+      'decryptWithAES',
+      {
+        "encryptedData": encryptedData,
+        "aesKey": aesKey
+      },
+    );
+
+    return ResultModel.fromMap(
+      map: Map<String, dynamic>.from(result),
+      decoder: (rawData) {
+        return rawData as String?;
+      },
+    );
+  }
 }

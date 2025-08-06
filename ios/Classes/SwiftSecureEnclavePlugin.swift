@@ -155,6 +155,17 @@ public class SwiftSecureEnclavePlugin: NSObject, FlutterPlugin {
             } catch {
                 result(resultError(error:error))
             }
+            
+        case "decryptWithAES" :
+            do{
+                let param = call.arguments as? Dictionary<String, Any>
+                let encryptedData = param!["encryptedData"] as! FlutterStandardTypedData
+                let aesKey = param!["aesKey"] as! FlutterStandardTypedData
+                let decrypted = try encryptionStrategy.decryptWithAES(encryptedData: encryptedData.data, aesKey: aesKey.data)
+                result(resultSuccess(data:decrypted))
+            } catch {
+                result(resultError(error:error))
+            }
        
         default:
             return

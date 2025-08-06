@@ -14,6 +14,8 @@ import java.security.*
 import java.security.spec.ECGenParameterSpec
 import java.security.spec.PKCS8EncodedKeySpec
 import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
+import javax.crypto.spec.IvParameterSpec
 
 class ModernEncryptionStrategy(private val context: Context) : EncryptionStrategy {
 
@@ -220,7 +222,9 @@ class ModernEncryptionStrategy(private val context: Context) : EncryptionStrateg
         val privateKey = getServerPrivateKey(tag) ?: return null
         val cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding") //RSA/ECB/PKCS1Padding
         cipher.init(Cipher.DECRYPT_MODE, privateKey)
-        return String(cipher.doFinal(message))
+        val decryptedBytes = cipher.doFinal(message)
+        // Server returns raw AES key bytes, convert to base64 for consistent handling
+        return Base64.encodeToString(decryptedBytes, Base64.NO_WRAP)
     }
 
     override fun sign(tag: String, message: ByteArray): String? {
@@ -232,6 +236,33 @@ class ModernEncryptionStrategy(private val context: Context) : EncryptionStrateg
         signature.initSign(privateKey)
         signature.update(message)
         return Base64.encodeToString(signature.sign(), Base64.NO_WRAP)
+    }
+
+    override fun decryptWithAES(encryptedData: ByteArray, aesKey: ByteArray): String? {
+        return try {
+            // Server updated: IV is now prepended to encrypted data
+            // Format: [IV (16 bytes)][Encrypted Data (remaining bytes)]
+            
+            if (encryptedData.size < 16) {
+                throw IllegalArgumentException("Encrypted data too short - must contain at least 16 bytes for IV")
+            }
+            
+            val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+            val secretKeySpec = SecretKeySpec(aesKey, "AES")
+            
+            // Extract IV from first 16 bytes
+            val iv = encryptedData.sliceArray(0..15)
+            val actualEncryptedData = encryptedData.sliceArray(16 until encryptedData.size)
+            
+            val ivParameterSpec = IvParameterSpec(iv)
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec)
+            
+            val decryptedData = cipher.doFinal(actualEncryptedData)
+            String(decryptedData, Charsets.UTF_8)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
