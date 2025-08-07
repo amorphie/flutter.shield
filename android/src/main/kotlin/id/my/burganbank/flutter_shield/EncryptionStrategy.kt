@@ -42,4 +42,7 @@ interface EncryptionStrategy {
 
     @Throws(Exception::class)
     fun verify(tag: String, plainText: String, signature: String): Boolean
+
+    @Throws(Exception::class)
+    fun decryptWithAES(encryptedData: ByteArray, aesKey: ByteArray): String?
 }

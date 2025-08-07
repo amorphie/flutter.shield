@@ -29,4 +29,6 @@ protocol EncryptionStrategy {
     func sign(tag: String, message: Data) throws -> String?
     
     func verify(tag: String, plainText: String, signature: String) throws -> Bool
+    
+    func decryptWithAES(encryptedData: Data, aesKey: Data) throws -> String?
 }

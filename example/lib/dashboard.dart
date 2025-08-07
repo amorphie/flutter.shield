@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_shield_example/aes_decrypt_test.dart';
 import 'package:flutter_shield_example/app_mtls.dart';
 import 'package:flutter_shield_example/app_password.dart';
 import 'package:flutter_shield_example/generate_cert.dart';
@@ -102,6 +103,28 @@ class _DashboardState extends State<Dashboard> {
                     height: 100,
                     child: Center(
                       child: Text('MTLS Call'),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(5),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AESDecryptTest(),
+                    ),
+                  );
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: SizedBox(
+                    height: 100,
+                    child: Center(
+                      child: Text('AES Decrypt Test'),
                     ),
                   ),
                 ),

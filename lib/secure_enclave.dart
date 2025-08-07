@@ -92,4 +92,15 @@ class SecureEnclave implements SecureEnclaveBase {
   Future<ResultModel<bool>> storeCertificate({required String tag, required Uint8List certificateData}) {
     return SecureEnclavePlatform.instance.storeCertificate(tag: tag, certificateData: certificateData);
   }
+
+  @override
+  Future<ResultModel<String?>> decryptWithAES({
+    required Uint8List encryptedData,
+    required Uint8List aesKey
+  }) {
+    return SecureEnclavePlatform.instance.decryptWithAES(
+      encryptedData: encryptedData,
+      aesKey: aesKey
+    );
+  }
 }

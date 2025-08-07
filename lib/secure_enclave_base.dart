@@ -129,5 +129,21 @@ abstract class SecureEnclaveBase {
   ///
   /// Returns a [ResultModel] containing a `bool` value indicating if the signature is valid (`true`)
   /// or invalid (`false`), or `null` if verification fails.
-  Future<ResultModel<bool?>> verify({required String tag, required String plainText, required String signature});
+  Future<ResultModel<bool?>> verify({
+    required String tag,
+    required String plainText,
+    required String signature
+  });
+
+  /// Decrypts the given encrypted data using AES algorithm with the provided key.
+  ///
+  /// The `encryptedData` parameter contains the encrypted payload (including IV as first 16 bytes).
+  /// The `aesKey` parameter is the AES key used for decryption.
+  ///
+  /// Returns a [ResultModel] containing the decrypted plain text as a `String`,
+  /// or `null` if decryption fails.
+  Future<ResultModel<String?>> decryptWithAES({
+    required Uint8List encryptedData,
+    required Uint8List aesKey
+  });
 }
