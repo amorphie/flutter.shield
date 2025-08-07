@@ -1,19 +1,25 @@
 import 'dart:typed_data';
 
+import 'package:flutter_shield/src/models/secure_enclave_log_data.dart';
+
 import 'src/models/access_control_model.dart';
 import 'src/models/result_model.dart';
 
 abstract class SecureEnclaveBase {
+  /// Optional callback function for logging secure enclave operations.
+  ///
+  /// When assigned, this function will be called with detailed log data
+  /// including method name, arguments, results, and any errors that occur
+  /// during secure enclave operations.
+  Future<void> Function(SecureEnclaveLogData logData)? log;
+
   /// Stores the certificate securely with a given tag.
   ///
   /// The `tag` parameter is used to label or identify the certificate.
   /// The `certificateData` parameter contains the certificate in `Uint8List` format, which will be securely stored.
   ///
   /// Returns a [ResultModel] wrapping a `bool` value, indicating whether the storage operation was successful.
-  Future<ResultModel<bool>> storeCertificate({
-    required String tag,
-    required Uint8List certificateData
-  });
+  Future<ResultModel<bool>> storeCertificate({required String tag, required Uint8List certificateData});
 
   /// Retrieves the certificate (PEM) stored with the specified tag.
   ///
@@ -22,9 +28,7 @@ abstract class SecureEnclaveBase {
   /// If the certificate is not found, the result will contain `null`.
   ///
   /// Returns a [ResultModel] containing the certificate data or `null` if not found.
-  Future<ResultModel<String?>> getCertificate({
-    required String tag
-  });
+  Future<ResultModel<String?>> getCertificate({required String tag});
 
   /// Removes the certificate stored with the specified tag.
   ///
@@ -32,9 +36,7 @@ abstract class SecureEnclaveBase {
   /// The operation returns a `bool` value wrapped in [ResultModel], indicating whether the certificate was successfully removed.
   ///
   /// Returns a [ResultModel] with a `bool` value: `true` if removal succeeded, `false` otherwise.
-  Future<ResultModel<bool>> removeCertificate({
-    required String tag
-  });
+  Future<ResultModel<bool>> removeCertificate({required String tag});
 
   /// Stores the private key received from the server securely.
   ///
@@ -44,10 +46,7 @@ abstract class SecureEnclaveBase {
   /// allowing for platform-based variations.
   ///
   /// Returns a [ResultModel] wrapping a `bool` value, indicating success or failure of the storage operation.
-  Future<ResultModel<bool>> storeServerPrivateKey({
-    required String tag,
-    required Uint8List privateKeyData
-  });
+  Future<ResultModel<bool>> storeServerPrivateKey({required String tag, required Uint8List privateKeyData});
 
   /// Retrieves the private key (PEM) for the specified server.
   ///
@@ -57,7 +56,7 @@ abstract class SecureEnclaveBase {
   Future<ResultModel<String?>> getServerKey({
     required String tag,
   });
-  
+
   /// Creates keys on the client side
   ///
   /// The `accessControl` parameter contains key related settings
@@ -66,7 +65,7 @@ abstract class SecureEnclaveBase {
   Future<ResultModel<bool>> generateKeyPair({
     required AccessControlModel accessControl,
   });
-  
+
   /// Removes the generated keys based on the provided tag and flag.
   ///
   /// The `tag` parameter represents the key label or identifier.
@@ -83,7 +82,7 @@ abstract class SecureEnclaveBase {
   /// Returns a [ResultModel] containing the public key as a `String` if found,
   /// or `null` if no key is associated with the given tag.
   Future<ResultModel<String?>> getPublicKey(String tag);
-  
+
   /// Checks if a key has been created based on the specified tag and flag.
   ///
   /// The `tag` parameter represents the key identifier.
@@ -94,8 +93,7 @@ abstract class SecureEnclaveBase {
   /// Returns a [ResultModel] containing a `bool` value, where `true` indicates the key exists,
   /// `false` indicates it does not, or `null` if an error occurs.
   Future<ResultModel<bool?>> isKeyCreated(String tag, String flag);
-  
-  
+
   /// Encrypts the given message on the client side.
   ///
   /// The `tag` parameter is used to identify the encryption key.
@@ -103,10 +101,7 @@ abstract class SecureEnclaveBase {
   ///
   /// Returns a [ResultModel] containing the encrypted message as a `Uint8List`,
   /// or `null` if encryption fails.
-  Future<ResultModel<Uint8List?>> encrypt({
-     required String tag,
-     required String message
-  });
+  Future<ResultModel<Uint8List?>> encrypt({required String tag, required String message});
 
   /// Decrypts the given message on the server side.
   ///
@@ -115,10 +110,7 @@ abstract class SecureEnclaveBase {
   ///
   /// Returns a [ResultModel] containing the decrypted plain text as a `String`,
   /// or `null` if decryption fails.
-  Future<ResultModel<String?>> decrypt({
-    required String tag,
-    required Uint8List message
-  });
+  Future<ResultModel<String?>> decrypt({required String tag, required Uint8List message});
 
   /// Signs the given message on the client side.
   ///
@@ -127,10 +119,7 @@ abstract class SecureEnclaveBase {
   ///
   /// Returns a [ResultModel] containing the generated signature as a `String`,
   /// or `null` if signing fails.
-  Future<ResultModel<String?>> sign({
-    required String tag,
-    required Uint8List message
-  });
+  Future<ResultModel<String?>> sign({required String tag, required Uint8List message});
 
   /// Verifies the given signature against the plain text message on the client side.
   ///
