@@ -329,4 +329,13 @@ class FlutterSecureEnclaveWeb extends SecureEnclavePlatform {
     // TODO: implement getServerKey
     throw UnimplementedError();
   }
+
+  @override
+  Future<ResultModel<String?>> decryptWithAES({
+    required Uint8List encryptedData,
+    required Uint8List aesKey
+  }) {
+    // TODO: implement decryptWithAES
+    throw UnimplementedError();
+  }
 }
